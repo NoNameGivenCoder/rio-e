@@ -188,7 +188,7 @@ void RootTask::calc_()
 #endif // RIO_IS_CAFE
         ImGui::NewFrame();
         {
-            ImGui::Begin("Mii Utils Panel");
+            ImGui::Begin("Mii Utils Panel", &isOpen);
             if (ImGui::Button("Select new random mii"))
             {
                 delete mpModel;
@@ -259,8 +259,7 @@ void RootTask::exit_()
     ThemeMgr::destroySingleton();
 
     delete mpModel; // FFLCharModel destruction must happen before FFLExit
-    delete miiBufferSize;
-    delete &randomMiddleDB;
+    delete[] miiBufferSize;
     mpModel = nullptr;
 
     FFLExit();
