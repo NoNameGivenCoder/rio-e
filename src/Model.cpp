@@ -8,13 +8,7 @@
 const bool cLightEnable = true;
 
 Model::Model()
-    : mCharModelDesc()
-    , mMtxRT(rio::Matrix34f::ident)
-    , mScale { 1.0f, 1.0f, 1.0f }
-    , mMtxSRT(rio::Matrix34f::ident)
-    , mpShader(nullptr)
-    , mIsEnableSpecialDraw(false)
-    , mIsInitialized(false)
+    : mCharModelDesc(), mMtxRT(rio::Matrix34f::ident), mScale{1.0f, 1.0f, 1.0f}, mMtxSRT(rio::Matrix34f::ident), mpShader(nullptr), mIsEnableSpecialDraw(false), mIsInitialized(false)
 {
 }
 
@@ -27,18 +21,24 @@ Model::~Model()
     }
 }
 
-void Model::initialize_(const FFLCharModelDesc* p_desc)
+void Model::initialize_(const FFLCharModelDesc *p_desc)
 {
     mCharModelDesc = *p_desc;
+}
+
+bool Model::setExpression(u32 expression)
+{
+    mCharModelDesc.expressionFlag = expression;
+    // return initializeCpu_();
 }
 
 void Model::updateMtxSRT_()
 {
     mMtxSRT = mMtxRT;
 
-    reinterpret_cast<rio::Vector3f&>(mMtxSRT.v[0].x) *= static_cast<const rio::Vector3f&>(mScale);
-    reinterpret_cast<rio::Vector3f&>(mMtxSRT.v[1].x) *= static_cast<const rio::Vector3f&>(mScale);
-    reinterpret_cast<rio::Vector3f&>(mMtxSRT.v[2].x) *= static_cast<const rio::Vector3f&>(mScale);
+    reinterpret_cast<rio::Vector3f &>(mMtxSRT.v[0].x) *= static_cast<const rio::Vector3f &>(mScale);
+    reinterpret_cast<rio::Vector3f &>(mMtxSRT.v[1].x) *= static_cast<const rio::Vector3f &>(mScale);
+    reinterpret_cast<rio::Vector3f &>(mMtxSRT.v[2].x) *= static_cast<const rio::Vector3f &>(mScale);
 }
 
 void Model::enableSpecialDraw()
@@ -46,7 +46,7 @@ void Model::enableSpecialDraw()
     mIsEnableSpecialDraw = true;
 }
 
-void Model::drawOpa(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx)
+void Model::drawOpa(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx)
 {
     setViewUniform_(mMtxSRT, view_mtx, proj_mtx);
 
@@ -56,7 +56,7 @@ void Model::drawOpa(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj
         drawOpaNormal_();
 }
 
-void Model::drawXlu(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx)
+void Model::drawXlu(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx)
 {
     setViewUniform_(mMtxSRT, view_mtx, proj_mtx);
 
@@ -71,7 +71,7 @@ void Model::drawXlu(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj
     }
 }
 
-void Model::setViewUniform_(const rio::BaseMtx34f& model_mtx, const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx)
+void Model::setViewUniform_(const rio::BaseMtx34f &model_mtx, const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx)
 {
     RIO_ASSERT(mpShader);
     mpShader->bind(cLightEnable);
@@ -168,7 +168,7 @@ bool Model::initializeCpu_()
     return FFLInitCharModelCPUStep(&mCharModel, &mCharModelSource, &mCharModelDesc) == FFL_RESULT_OK;
 }
 
-void Model::initializeGpu_(const Shader& shader)
+void Model::initializeGpu_(const Shader &shader)
 {
     mpShader = &shader;
     mpShader->bind(false);
@@ -176,7 +176,7 @@ void Model::initializeGpu_(const Shader& shader)
     rio::Window::instance()->makeContextCurrent();
 }
 
-bool Model::setCharModelSource_(const FFLStoreData* p_store_data, u16)
+bool Model::setCharModelSource_(const FFLStoreData *p_store_data, u16)
 {
     mCharModelSource.dataSource = FFL_DATA_SOURCE_STORE_DATA;
     mCharModelSource.pBuffer = p_store_data;
@@ -185,7 +185,7 @@ bool Model::setCharModelSource_(const FFLStoreData* p_store_data, u16)
     return initializeCpu_();
 }
 
-bool Model::setCharModelSource_(const FFLMiddleDB* p_middle_db, u16 index)
+bool Model::setCharModelSource_(const FFLMiddleDB *p_middle_db, u16 index)
 {
     mCharModelSource.pBuffer = p_middle_db;
     mCharModelSource.index = index;

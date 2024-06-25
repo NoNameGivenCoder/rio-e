@@ -12,43 +12,44 @@ public:
     template <typename T>
     struct InitArg
     {
-        FFLCharModelDesc    desc;
-        const T*            data;
-        u16                 index;
+        FFLCharModelDesc desc;
+        const T *data;
+        u16 index;
     };
 
-    typedef InitArg<FFLStoreData>   InitArgStoreData;
-    typedef InitArg<FFLMiddleDB>    InitArgMiddleDB;
+    typedef InitArg<FFLStoreData> InitArgStoreData;
+    typedef InitArg<FFLMiddleDB> InitArgMiddleDB;
 
 public:
     Model();
     ~Model();
 
     template <typename T>
-    bool initialize(const InitArg<T>& arg, const Shader& shader);
+    bool initialize(const InitArg<T> &arg, const Shader &shader);
 
     void enableSpecialDraw();
 
-    void drawOpa(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx);
-    void drawXlu(const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx);
+    void drawOpa(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx);
+    void drawXlu(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx);
+    bool setExpression(u32 expression);
 
-    const rio::BaseMtx34f& getMtxRT() const
+    const rio::BaseMtx34f &getMtxRT() const
     {
         return mMtxRT;
     }
 
-    void setMtxRT(const rio::BaseMtx34f& mtx)
+    void setMtxRT(const rio::BaseMtx34f &mtx)
     {
         mMtxRT = mtx;
         updateMtxSRT_();
     }
 
-    const rio::BaseVec3f& getScale() const
+    const rio::BaseVec3f &getScale() const
     {
         return mScale;
     }
 
-    void setScale(const rio::BaseVec3f& scale)
+    void setScale(const rio::BaseVec3f &scale)
     {
         mScale = scale;
         updateMtxSRT_();
@@ -57,7 +58,7 @@ public:
 private:
     void updateMtxSRT_();
 
-    void setViewUniform_(const rio::BaseMtx34f& model_mtx, const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx);
+    void setViewUniform_(const rio::BaseMtx34f &model_mtx, const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx);
 
     void drawOpaNormal_();
     void drawOpaSpecial_();
@@ -65,27 +66,27 @@ private:
     void drawXluNormal_();
     void drawXluSpecial_();
 
-    void initialize_(const FFLCharModelDesc* p_desc);
+    void initialize_(const FFLCharModelDesc *p_desc);
     bool initializeCpu_();
-    void initializeGpu_(const Shader& shader);
+    void initializeGpu_(const Shader &shader);
 
-    bool setCharModelSource_(const FFLStoreData* p_store_data, u16);
-    bool setCharModelSource_(const FFLMiddleDB* p_middle_db, u16 index);
+    bool setCharModelSource_(const FFLStoreData *p_store_data, u16);
+    bool setCharModelSource_(const FFLMiddleDB *p_middle_db, u16 index);
 
 private:
-    FFLCharModel        mCharModel;
-    FFLCharModelDesc    mCharModelDesc;
-    FFLCharModelSource  mCharModelSource;
-    rio::BaseMtx34f     mMtxRT;
-    rio::BaseVec3f      mScale;
-    rio::BaseMtx34f     mMtxSRT;
-    const Shader*       mpShader;
-    bool                mIsEnableSpecialDraw;
-    bool                mIsInitialized;
+    FFLCharModel mCharModel;
+    FFLCharModelDesc mCharModelDesc;
+    FFLCharModelSource mCharModelSource;
+    rio::BaseMtx34f mMtxRT;
+    rio::BaseVec3f mScale;
+    rio::BaseMtx34f mMtxSRT;
+    const Shader *mpShader;
+    bool mIsEnableSpecialDraw;
+    bool mIsInitialized;
 };
 
 template <typename T>
-bool Model::initialize(const InitArg<T>& arg, const Shader& shader)
+bool Model::initialize(const InitArg<T> &arg, const Shader &shader)
 {
     RIO_ASSERT(mIsInitialized == false);
 

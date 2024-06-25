@@ -5,11 +5,11 @@
 static const rio::InitializeArg cInitializeArg = {
     .window = {
 #if RIO_IS_WIN
+        .resizable = true,
         .gl_major = 4,
-        .gl_minor = 3
+        .gl_minor = 3,
 #endif // RIO_IS_WIN
-    }
-};
+    }};
 
 int main()
 {
