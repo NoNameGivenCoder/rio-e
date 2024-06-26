@@ -118,7 +118,8 @@ void RootTask::prepare_()
     createModel_(0);
 
     // Set projection matrix
-    CENTER_POS = {0.0f, 2.0f, -0.25f};
+    CAM_POS = {0.0f, 2.0f, -0.25f};
+    LOOK_POS = CAM_POS * 2;
     updateProjectionMatrix();
     isOpen = true;
     mInitialized = true;
@@ -154,26 +155,53 @@ void RootTask::calc_()
         RIO_ASSERT(controller);
     }
 
+    static float yaw = 0.0f;   // Rotation around the y-axis
+    static float pitch = 0.0f; // Rotation around the x-axis
+
+    // Calculate forward vector
+    rio::Vector3f forward;
+
     if (controller->isConnected())
     {
         rio::Vector2f leftStickVector = controller->getLeftStick();
         rio::Vector2f rightStickVector = controller->getRightStick();
 
-        CENTER_POS.y += leftStickVector.y;
-        CENTER_POS.x += leftStickVector.x;
-        CENTER_POS.z += rightStickVector.y;
+        // Update camera rotation
+        const float rotationSpeed = 0.01f; // Adjust this value as needed
+        yaw += rightStickVector.x * rotationSpeed * -1;
+        pitch += rightStickVector.y * rotationSpeed;
+
+        // Clamp pitch to avoid flipping the camera
+        if (pitch > 1.5f)
+            pitch = 1.5f;
+        if (pitch < -1.5f)
+            pitch = -1.5f;
+
+        forward.x = cos(pitch) * sin(yaw);
+        forward.y = sin(pitch);
+        forward.z = cos(pitch) * cos(yaw);
+
+        // Calculate right vector
+        rio::Vector3f right;
+        right.x = sin(yaw - 3.14f / 2.0f);
+        right.y = 0;
+        right.z = cos(yaw - 3.14f / 2.0f);
+
+        // Move camera
+        const float moveSpeed = 0.1f; // Adjust this value as needed
+        CAM_POS += forward * leftStickVector.y * moveSpeed;
+        CAM_POS += right * leftStickVector.x * moveSpeed;
     }
 
     rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 1.0f);
     rio::Window::instance()->clearDepthStencil();
 
-    mCamera.at() = CENTER_POS;
-
-    // Move camera
+    // Update camera position and orientation
+    mCamera.at() = CAM_POS + forward;
     mCamera.pos().set(
-        CENTER_POS.x,
-        CENTER_POS.y,
-        CENTER_POS.z + 10);
+        CAM_POS.x,
+        CAM_POS.y,
+        CAM_POS.z);
 
     Render();
 }

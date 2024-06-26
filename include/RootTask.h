@@ -36,7 +36,8 @@ private:
     Shader mShader;
     rio::BaseMtx44f mProjMtx;
     rio::LookAtCamera mCamera;
-    rio::Vector3f CENTER_POS;
+    rio::Vector3f CAM_POS;
+    rio::Vector3f LOOK_POS;
     Model *mpModel;
     FFLMiddleDB randomMiddleDB;
     void *miiBufferSize;
