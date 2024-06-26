@@ -3,6 +3,7 @@
 
 #include <filedevice/rio_FileDeviceMgr.h>
 #include <rio.h>
+#include <controller/rio_Controller.h>
 #include <controller/rio_ControllerMgr.h>
 #include <controller/win/rio_WinControllerWin.h>
 #include <gfx/rio_Projection.h>
@@ -117,8 +118,8 @@ void RootTask::prepare_()
     createModel_(0);
 
     // Set projection matrix
+    CENTER_POS = {0.0f, 2.0f, -0.25f};
     updateProjectionMatrix();
-
     isOpen = true;
     mInitialized = true;
 }
@@ -138,8 +139,6 @@ void RootTask::createModel_(u16 index)
     mpModel = new Model();
     mpModel->initialize(arg, mShader);
     mpModel->setScale({1 / 16.f, 1 / 16.f, 1 / 16.f});
-
-    mCounter = 0.0f;
 }
 
 void RootTask::calc_()
@@ -147,25 +146,43 @@ void RootTask::calc_()
     if (!mInitialized)
         return;
 
+    rio::Controller *controller = rio::ControllerMgr::instance()->getGamepad(0);
+    // If there is no controller connected, try getting the "main" controller. (credits to abood's FFL-Testing)
+    if (!controller || !controller->isConnected())
+    {
+        controller = rio::ControllerMgr::instance()->getMainGamepad();
+        RIO_ASSERT(controller);
+    }
+
+    if (controller->isConnected())
+    {
+        rio::Vector2f leftStickVector = controller->getLeftStick();
+        rio::Vector2f rightStickVector = controller->getRightStick();
+
+        CENTER_POS.y += leftStickVector.y;
+        CENTER_POS.x += leftStickVector.x;
+        CENTER_POS.z += rightStickVector.y;
+    }
+
     rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 1.0f);
     rio::Window::instance()->clearDepthStencil();
-
-    static const rio::Vector3f CENTER_POS = {0.0f, 2.0f, -0.25f};
 
     mCamera.at() = CENTER_POS;
 
     // Move camera
     mCamera.pos().set(
-        CENTER_POS.x + std::sin(mCounter) * 10,
+        CENTER_POS.x,
         CENTER_POS.y,
-        CENTER_POS.z + std::cos(mCounter) * 10);
-    mCounter += 1.f / 60;
+        CENTER_POS.z + 10);
 
+    Render();
+}
+
+void RootTask::Render()
+{
     // Get view matrix
     rio::BaseMtx34f view_mtx;
     mCamera.getMatrix(&view_mtx);
-
-    // mpModel->enableSpecialDraw();
 
     mpModel->drawOpa(view_mtx, mProjMtx);
     mpModel->drawXlu(view_mtx, mProjMtx);
@@ -192,7 +209,7 @@ void RootTask::calc_()
             if (ImGui::Button("Select new random mii"))
             {
                 delete mpModel;
-                createModel_((rand() % 100));
+                createModel_((rand() % FFLGetMiddleDBStoredSize(&randomMiddleDB)));
             }
 
             ImGui::BeginTable("Random Miis", 2);
@@ -256,16 +273,35 @@ void RootTask::exit_()
     ImGui_ImplGlfw_Shutdown();
 #endif // RIO_IS_CAFE
     ImGui::DestroyContext();
+
+    // Make sure ThemeMgr is destroyed before destroying ImGui context.
     ThemeMgr::destroySingleton();
 
-    delete mpModel; // FFLCharModel destruction must happen before FFLExit
+    ImGui_ImplOpenGL3_DestroyFontsTexture();
+
+    // Check if mpModel is not null before deleting it.
+    delete mpModel;    // FFLCharModel destruction must happen before FFLExit
+    mpModel = nullptr; // Set to nullptr after deletion
     delete[] miiBufferSize;
-    mpModel = nullptr;
+    miiBufferSize = nullptr;
+    delete p_io;
+    p_io = nullptr;
+    delete controller;
+    controller = nullptr;
 
     FFLExit();
 
-    rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH]);
-    rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE]);
+    // Free the resources and set pointers to nullptr.
+    if (mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH])
+    {
+        rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH]);
+        mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH] = nullptr;
+    }
+    if (mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE])
+    {
+        rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE]);
+        mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE] = nullptr;
+    }
 
     mInitialized = false;
 }

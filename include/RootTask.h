@@ -1,6 +1,7 @@
 #include <Shader.h>
 
 #include <gfx/rio_Camera.h>
+#include <controller/rio_Controller.h>
 #include <task/rio_Task.h>
 #include <nn/ffl/FFLMiddleDB.h>
 #include <nn/ffl/FFLMiddleDBType.h>
@@ -21,9 +22,11 @@ private:
     void createModel_(u16 index);
     void updateProjectionMatrix();
     void initImgui();
+    void Render();
 
 #if RIO_IS_WIN
-    void resize_(s32 width, s32 height);
+    void
+    resize_(s32 width, s32 height);
     static void onResizeCallback_(s32 width, s32 height);
 #endif // RIO_IS_WIN
 
@@ -33,11 +36,12 @@ private:
     Shader mShader;
     rio::BaseMtx44f mProjMtx;
     rio::LookAtCamera mCamera;
-    f32 mCounter;
+    rio::Vector3f CENTER_POS;
     Model *mpModel;
     FFLMiddleDB randomMiddleDB;
     void *miiBufferSize;
     ImGuiIO *p_io;
+    rio::Controller *controller;
 
     bool isOpen;
 };
