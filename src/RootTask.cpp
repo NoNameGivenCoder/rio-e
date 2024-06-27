@@ -2,6 +2,7 @@
 #include <RootTask.h>
 
 #include <filedevice/rio_FileDeviceMgr.h>
+#include <filedevice/rio_FileDevice.h>
 #include <rio.h>
 #include <controller/rio_Controller.h>
 #include <controller/rio_ControllerMgr.h>
@@ -11,6 +12,9 @@
 #include <string>
 #include <stdio.h>
 
+#include <helpers/CameraController.h>
+#include <helpers/audio/PlayAudio.h>
+
 #if RIO_IS_CAFE
 #include <controller/rio_ControllerMgr.h>
 #include <controller/cafe/rio_CafeVPadDeviceCafe.h>
@@ -18,6 +22,7 @@
 #include <helpers/CafeControllerInput.h>
 #include <imgui_impl_gx2.h>
 #include <imgui_impl_wiiu.h>
+#include <coreinit/debug.h>
 #else
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -34,6 +39,7 @@ void RootTask::prepare_()
 {
     // Init imgui
     initImgui();
+
     mInitialized = false;
 
     FFLInitDesc init_desc;
@@ -117,11 +123,10 @@ void RootTask::prepare_()
 
     createModel_(0);
 
-    // Set projection matrix
-    CAM_POS = {0.0f, 2.0f, -0.25f};
-    LOOK_POS = CAM_POS * 2;
+    FOV = 90.f;
+    AudioHelper *audioHelper = new AudioHelper(mCamera, 100.f);
     updateProjectionMatrix();
-    isOpen = true;
+    isDebuggingOpen = false;
     mInitialized = true;
 }
 
@@ -140,6 +145,8 @@ void RootTask::createModel_(u16 index)
     mpModel = new Model();
     mpModel->initialize(arg, mShader);
     mpModel->setScale({1 / 16.f, 1 / 16.f, 1 / 16.f});
+
+    audioHelper->PlaySound("shine.wav", "newMiiSnd", 50.f, false, {0, 5.f, 0});
 }
 
 void RootTask::calc_()
@@ -155,54 +162,16 @@ void RootTask::calc_()
         RIO_ASSERT(controller);
     }
 
-    static float yaw = 0.0f;   // Rotation around the y-axis
-    static float pitch = 0.0f; // Rotation around the x-axis
-
-    // Calculate forward vector
-    rio::Vector3f forward;
-
     if (controller->isConnected())
     {
-        rio::Vector2f leftStickVector = controller->getLeftStick();
-        rio::Vector2f rightStickVector = controller->getRightStick();
-
-        // Update camera rotation
-        const float rotationSpeed = 0.01f; // Adjust this value as needed
-        yaw += rightStickVector.x * rotationSpeed * -1;
-        pitch += rightStickVector.y * rotationSpeed;
-
-        // Clamp pitch to avoid flipping the camera
-        if (pitch > 1.5f)
-            pitch = 1.5f;
-        if (pitch < -1.5f)
-            pitch = -1.5f;
-
-        forward.x = cos(pitch) * sin(yaw);
-        forward.y = sin(pitch);
-        forward.z = cos(pitch) * cos(yaw);
-
-        // Calculate right vector
-        rio::Vector3f right;
-        right.x = sin(yaw - 3.14f / 2.0f);
-        right.y = 0;
-        right.z = cos(yaw - 3.14f / 2.0f);
-
-        // Move camera
-        const float moveSpeed = 0.1f; // Adjust this value as needed
-        CAM_POS += forward * leftStickVector.y * moveSpeed;
-        CAM_POS += right * leftStickVector.x * moveSpeed;
+        controller->calc();
+        useFlyCam(&mCamera, controller);
     }
 
-    rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 0.0f);
     rio::Window::instance()->clearDepthStencil();
 
-    // Update camera position and orientation
-    mCamera.at() = CAM_POS + forward;
-    mCamera.pos().set(
-        CAM_POS.x,
-        CAM_POS.y,
-        CAM_POS.z);
-
+    audioHelper->UpdateAudio(mCamera);
     Render();
 }
 
@@ -233,30 +202,63 @@ void RootTask::Render()
 #endif // RIO_IS_CAFE
         ImGui::NewFrame();
         {
-            ImGui::Begin("Mii Utils Panel", &isOpen);
-            if (ImGui::Button("Select new random mii"))
+            if (ImGui::BeginMainMenuBar())
             {
-                delete mpModel;
-                createModel_((rand() % FFLGetMiddleDBStoredSize(&randomMiddleDB)));
-            }
-
-            ImGui::BeginTable("Random Miis", 2);
-            ImVec2 buttonSize = {100, 100};
-            for (int i = 0; i < FFLGetMiddleDBStoredSize(&randomMiddleDB); i++)
-            {
-                std::string formattedButtonID = "Mii " + std::to_string(i);
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                if (ImGui::Button(formattedButtonID.c_str(), buttonSize))
+                if (ImGui::BeginMenu("File"))
                 {
-                    int index = i;
-                    delete mpModel;
-                    createModel_((u16)(index));
+                    if (ImGui::MenuItem("Save Mii..", "Ctrl+S"))
+                    {
+                        RIO_LOG("Would be saving a mii..");
+                    }
+
+                    ImGui::EndMenu();
                 }
-                ImGui::TableNextColumn();
-                ImGui::Text(formattedButtonID.c_str());
+
+                if (ImGui::BeginMenu("Camera Utility"))
+                {
+                    ImGui::Text("Camera X: %f", mCamera.pos().x);
+                    ImGui::Text("Camera Y: %f", mCamera.pos().y);
+                    ImGui::Text("Camera Z: %f", mCamera.pos().z);
+
+                    // ImGui::Text("Stick X: %f", controller->getLeftStick().x);
+                    // ImGui::Text("Stick Y: %f", controller->getLeftStick().y);
+
+                    if (ImGui::SliderFloat("FOV", &FOV, .5f, 100.f))
+                    {
+                        updateProjectionMatrix();
+                    }
+
+                    if (ImGui::MenuItem("Test Sound"))
+                    {
+                        audioHelper->PlaySound("shine.wav", "newMiiSnd", 50.f, false, {0, 5.f, 0});
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Mii Utility"))
+                {
+                    ImGui::Text("Random Mii Database Size: %d", FFLGetMiddleDBStoredSize(&randomMiddleDB));
+                    if (ImGui::Button("Select Random Mii"))
+                    {
+                        delete mpModel;
+                        createModel_(rand() % FFLGetMiddleDBStoredSize(&randomMiddleDB));
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Debug"))
+                {
+                    isDebuggingOpen = true;
+
+                    ImGui::ShowDebugLogWindow(&isDebuggingOpen);
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndMainMenuBar();
             }
-            ImGui::EndTable();
 
             ImGui::End();
         }
@@ -296,16 +298,16 @@ void RootTask::exit_()
 #if RIO_IS_CAFE
     ImGui_ImplGX2_Shutdown();
     ImGui_ImplWiiU_Shutdown();
+    ImGui_ImplGX2_DestroyFontsTexture();
 #else
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplOpenGL3_DestroyFontsTexture();
 #endif // RIO_IS_CAFE
     ImGui::DestroyContext();
 
     // Make sure ThemeMgr is destroyed before destroying ImGui context.
     ThemeMgr::destroySingleton();
-
-    ImGui_ImplOpenGL3_DestroyFontsTexture();
 
     // Check if mpModel is not null before deleting it.
     delete mpModel;    // FFLCharModel destruction must happen before FFLExit
@@ -336,12 +338,12 @@ void RootTask::exit_()
 
 void RootTask::initImgui()
 {
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-
     ImGui::CreateContext();
-
     ImGuiIO &io = ImGui::GetIO();
-    RootTask::p_io = &io;
+    p_io = &io;
+    io.Fonts->AddFontFromFileTTF("NotoSans-Regular.ttf", 20);
 #if RIO_IS_CAFE
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 #else
@@ -349,7 +351,6 @@ void RootTask::initImgui()
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 #endif                                                // RIO_IS_CAFE
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-    io.Fonts->AddFontFromFileTTF("comic_sans.ttf", 20.f);
     // io.ConfigViewportsNoAutoMerge = true;
     // io.ConfigViewportsNoTaskBarIcon = true;
 
@@ -367,12 +368,14 @@ void RootTask::initImgui()
     }
 #endif
 
-    // Setup platform and renderer backends
 #if RIO_IS_CAFE
     // Scale everything by 1.5 for the Wii U
     ImGui::GetStyle().ScaleAllSizes(1.5f);
     io.FontGlobalScale = 1.5f;
+#endif // RIO_IS_CAFE
 
+    // Setup platform and renderer backends
+#if RIO_IS_CAFE
     ImGui_ImplWiiU_Init();
     ImGui_ImplGX2_Init();
 #else
@@ -380,8 +383,10 @@ void RootTask::initImgui()
     ImGui_ImplOpenGL3_Init("#version 130");
 #endif // RIO_IS_CAFE
 
-    ThemeMgr::createSingleton();
-    ThemeMgr::instance()->applyTheme(ThemeMgr::sDefaultTheme);
+    // Our state
+    // show_demo_window = true;
+    // show_another_window = false;
+    // clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Setup display sizes and scales
     io.DisplaySize.x = (float)rio::Window::instance()->getWidth();  // set the current display width
@@ -401,7 +406,7 @@ void RootTask::updateProjectionMatrix()
     rio::PerspectiveProjection proj(
         0.1f,
         100.0f,
-        rio::Mathf::deg2rad(45),
+        rio::Mathf::deg2rad(FOV),
         f32(window->getWidth()) / f32(window->getHeight()));
 
     // Calculate matrix

@@ -6,6 +6,7 @@
 #include <nn/ffl/FFLMiddleDB.h>
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
+#include <helpers/audio/PlayAudio.h>
 
 class Model;
 
@@ -36,13 +37,13 @@ private:
     Shader mShader;
     rio::BaseMtx44f mProjMtx;
     rio::LookAtCamera mCamera;
-    rio::Vector3f CAM_POS;
-    rio::Vector3f LOOK_POS;
+    float FOV;
     Model *mpModel;
     FFLMiddleDB randomMiddleDB;
     void *miiBufferSize;
     ImGuiIO *p_io;
     rio::Controller *controller;
+    AudioHelper *audioHelper;
 
-    bool isOpen;
+    bool isDebuggingOpen;
 };

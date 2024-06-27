@@ -55,9 +55,12 @@ SOURCES		:=	../../FFL/src/detail \
 				../../imgui/backends/wiiu \
 				src \
 				src/helpers \
+				src/helpers/ui \
 DATA		:=	data
 INCLUDES	:=	../../rio/include \
 				include \
+				src/helpers \
+				src/helpers/ui \
 				../../FFL/include \
 				../../imgui \
                 ../../imgui/backends/wiiu \

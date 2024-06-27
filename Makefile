@@ -2,7 +2,7 @@
 # Prepend toolchain prefix that you can choose
 CXX := $(TOOLCHAIN_PREFIX)g++
 
-INCLUDES := -I../../ninTexUtils/include -I../../rio/include -I../../FFL-Windows/include -I../../imgui/backends -I../../imgui -Iinclude $(INCLUDES)
+INCLUDES := -I../../ninTexUtils/include -I../../rio/include -I../../FFL-Windows/include -I../../imgui/backends -I../../imgui -Iinclude -Iincludes/helpers -IC:\msys64\mingw64\include $(INCLUDES)
 
 # --- Definitions
 
@@ -11,7 +11,7 @@ INCLUDES := -I../../ninTexUtils/include -I../../rio/include -I../../FFL-Windows/
 # NDEBUG is required to build on 64 bit (ignore static asserts)
 # FFL_NO_OPEN_DATABASE makes sure it doesn't try to open the database by default if you don't need it
 # FFL_TEST_DISABLE_MII_COLOR_VERIFY is a testing option that allows you to use out of bound color values in CharInfo
-DEFS := -DFFL_MLC_PATH="\"./\"" -DRIO_DEBUG -DNDEBUG -DFFL_NO_OPEN_DATABASE -DFFL_TEST_DISABLE_MII_COLOR_VERIFY $(DEFS)
+DEFS := -DFFL_MLC_PATH="\"./\"" -DRIO_DEBUG -DNDEBUG -DFFL_NO_OPEN_DATABASE -DFFL_TEST_DISABLE_MII_COLOR_VERIFY -DRIO_AUDIO_USE_SDL_MIXER $(DEFS)
 
 # Binary name which you can change if you want
 EXEC := ffl_testing_2_debug64
@@ -27,7 +27,7 @@ PKG_CONFIG_PATH := include/.pkg-config-path-dummy-for-makefile/:$(PKG_CONFIG_PAT
 #export PKG_CONFIG_PATH  # not working???
 
 # libraries passed to pkg-config
-LIBS := zlib glew glfw3
+LIBS := zlib glew glfw3 sdl2_mixer
 # use pkg-config output as LDFLAGS and CFLAGS later on
 PKG_CONFIG_CFLAGS_CMD := $(TOOLCHAIN_PREFIX)pkg-config --cflags $(LIBS)
 $(info pkg-config cflags command: $(PKG_CONFIG_CFLAGS_CMD))
@@ -84,7 +84,7 @@ FFL_SRC := $(shell find ../../FFL-Windows/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/Model.cpp src/RootTask.cpp ../../imgui/backends/imgui_impl_glfw.cpp ../../imgui/backends/imgui_impl_opengl3.cpp ../../imgui/imgui.cpp ../../imgui/imgui_demo.cpp ../../imgui/imgui_draw.cpp ../../imgui/imgui_tables.cpp ../../imgui/imgui_widgets.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/audio/PlayAudio.cpp src/helpers/CameraController.cpp src/Model.cpp src/RootTask.cpp ../../imgui/backends/imgui_impl_glfw.cpp ../../imgui/backends/imgui_impl_opengl3.cpp ../../imgui/imgui.cpp ../../imgui/imgui_demo.cpp ../../imgui/imgui_draw.cpp ../../imgui/imgui_tables.cpp ../../imgui/imgui_widgets.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)
@@ -121,7 +121,7 @@ $(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ)
 
 # Clean up
 clean:
-	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(EXEC) src/Shader*.o build/*.o build/*.d build/*.map ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
+	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(EXEC) src/Shader*.o ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
 
 # Phony targets
 .PHONY: all clean no_clip_control
