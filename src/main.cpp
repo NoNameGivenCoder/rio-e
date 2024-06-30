@@ -1,6 +1,6 @@
 #include <RootTask.h>
-
 #include <rio.h>
+#include <SDL2/SDL.h>
 
 static const rio::InitializeArg cInitializeArg = {
     .window = {
@@ -11,7 +11,7 @@ static const rio::InitializeArg cInitializeArg = {
 #endif // RIO_IS_WIN
     }};
 
-int main()
+int main(int argc, char *argv[])
 {
     // Initialize RIO with root task
     if (!rio::Initialize<RootTask>(cInitializeArg))

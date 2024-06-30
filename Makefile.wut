@@ -79,14 +79,15 @@ CFLAGS	:=	-Wall -Wmissing-include-dirs -Wundef -Wredundant-decls -Wcast-align \
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ \
 			-DRIO_DEBUG \
-			-DRIO_CAFE_MAIN_FILE_DEVICE_AS_CONTENT
+			-DRIO_CAFE_MAIN_FILE_DEVICE_AS_CONTENT \
+			-DRIO_AUDIO_USE_SDL_MIXER
 
 CXXFLAGS	:= $(CFLAGS) -std=c++17
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lwut -lz
+LIBS	:= -lwut -lz -lsdl2_mixer
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level

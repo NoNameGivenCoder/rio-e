@@ -6,7 +6,7 @@
 #include <nn/ffl/FFLMiddleDB.h>
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
-#include <helpers/audio/PlayAudio.h>
+#include <helpers/audio/AudioNode.h>
 
 class Model;
 
@@ -42,8 +42,7 @@ private:
     FFLMiddleDB randomMiddleDB;
     void *miiBufferSize;
     ImGuiIO *p_io;
-    rio::Controller *controller;
-    AudioHelper *audioHelper;
+    AudioNode *mMainBgmAudioNode;
 
     bool isDebuggingOpen;
 };

@@ -26,12 +26,6 @@ void Model::initialize_(const FFLCharModelDesc *p_desc)
     mCharModelDesc = *p_desc;
 }
 
-bool Model::setExpression(u32 expression)
-{
-    mCharModelDesc.expressionFlag = expression;
-    // return initializeCpu_();
-}
-
 void Model::updateMtxSRT_()
 {
     mMtxSRT = mMtxRT;

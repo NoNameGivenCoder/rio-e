@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include <helpers/CameraController.h>
-#include <helpers/audio/PlayAudio.h>
+#include <helpers/audio/AudioNode.h>
 
 #if RIO_IS_CAFE
 #include <controller/rio_ControllerMgr.h>
@@ -124,7 +124,8 @@ void RootTask::prepare_()
     createModel_(0);
 
     FOV = 90.f;
-    AudioHelper *audioHelper = new AudioHelper(mCamera, 100.f);
+    mMainBgmAudioNode = new AudioNode(mCamera, 1.0f);
+    mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
     updateProjectionMatrix();
     isDebuggingOpen = false;
     mInitialized = true;
@@ -145,8 +146,6 @@ void RootTask::createModel_(u16 index)
     mpModel = new Model();
     mpModel->initialize(arg, mShader);
     mpModel->setScale({1 / 16.f, 1 / 16.f, 1 / 16.f});
-
-    audioHelper->PlaySound("shine.wav", "newMiiSnd", 50.f, false, {0, 5.f, 0});
 }
 
 void RootTask::calc_()
@@ -171,7 +170,7 @@ void RootTask::calc_()
     rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 0.0f);
     rio::Window::instance()->clearDepthStencil();
 
-    audioHelper->UpdateAudio(mCamera);
+    mMainBgmAudioNode->UpdateAudio(mCamera);
     Render();
 }
 
@@ -208,7 +207,13 @@ void RootTask::Render()
                 {
                     if (ImGui::MenuItem("Save Mii..", "Ctrl+S"))
                     {
-                        RIO_LOG("Would be saving a mii..");
+                        FFLStoreData store_data;
+                        FFLiGetStoreData(&store_data, FFL_DATA_SOURCE_MIDDLE_DB, 52);
+                        rio::FileDevice *fileDevice = rio::FileDeviceMgr::instance()->getMainFileDevice();
+                        rio::FileHandle fileHandle;
+                        fileDevice->open(&fileHandle, "TestMii.ffsd", rio::FileDevice::FILE_OPEN_FLAG_CREATE);
+                        fileDevice->write(&fileHandle, store_data.data, sizeof(store_data.data));
+                        fileDevice->close(&fileHandle);
                     }
 
                     ImGui::EndMenu();
@@ -219,6 +224,9 @@ void RootTask::Render()
                     ImGui::Text("Camera X: %f", mCamera.pos().x);
                     ImGui::Text("Camera Y: %f", mCamera.pos().y);
                     ImGui::Text("Camera Z: %f", mCamera.pos().z);
+                    ImGui::Text("Look At X: %f", mCamera.at().x);
+                    ImGui::Text("Look At Y: %f", mCamera.at().y);
+                    ImGui::Text("Look At Z: %f", mCamera.at().z);
 
                     // ImGui::Text("Stick X: %f", controller->getLeftStick().x);
                     // ImGui::Text("Stick Y: %f", controller->getLeftStick().y);
@@ -226,11 +234,6 @@ void RootTask::Render()
                     if (ImGui::SliderFloat("FOV", &FOV, .5f, 100.f))
                     {
                         updateProjectionMatrix();
-                    }
-
-                    if (ImGui::MenuItem("Test Sound"))
-                    {
-                        audioHelper->PlaySound("shine.wav", "newMiiSnd", 50.f, false, {0, 5.f, 0});
                     }
 
                     ImGui::EndMenu();
@@ -302,22 +305,13 @@ void RootTask::exit_()
 #else
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui_ImplOpenGL3_DestroyFontsTexture();
 #endif // RIO_IS_CAFE
     ImGui::DestroyContext();
 
-    // Make sure ThemeMgr is destroyed before destroying ImGui context.
-    ThemeMgr::destroySingleton();
-
     // Check if mpModel is not null before deleting it.
-    delete mpModel;    // FFLCharModel destruction must happen before FFLExit
-    mpModel = nullptr; // Set to nullptr after deletion
+    delete mpModel; // FFLCharModel destruction must happen before FFLExit
     delete[] miiBufferSize;
-    miiBufferSize = nullptr;
-    delete p_io;
-    p_io = nullptr;
-    delete controller;
-    controller = nullptr;
+    delete mMainBgmAudioNode;
 
     FFLExit();
 

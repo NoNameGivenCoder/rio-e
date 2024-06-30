@@ -4,8 +4,8 @@
 #include <helpers/CameraController.h>
 
 // Set projection matrix
-rio::Vector3f CAM_POS;
-rio::Vector3f LOOK_POS;
+rio::Vector3f CAM_POS = {0, 1, 3};
+rio::Vector3f LOOK_POS = {0, 0, 3};
 
 void useFlyCam(rio::LookAtCamera *camera, rio::Controller *controller)
 {
