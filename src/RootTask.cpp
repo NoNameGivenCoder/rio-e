@@ -141,9 +141,9 @@ void RootTask::prepare_()
         mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
 
         // Set light color
-        mLightColor.set(0.625f, 1.0f, 1.0f);
+        mLightColor.set(.7f, .7f, .7f);
         // Set light position
-        mLightPos.set(0.0f, 0.0f, 0.0f);
+        mLightPos.set(-8.0f, 10.0f, 20.0f);
 
         // Create light uniform block instance
         mpLightUniformBlock = new rio::UniformBlock();
@@ -153,15 +153,15 @@ void RootTask::prepare_()
         mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(ModelNode::LightBlock));
 
         // Load coin model
-        rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("mario_body", "miiMarioBody");
+        rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("MiiBody", "miiMarioBody");
 
         f32 angle = rio::Mathf::deg2rad(20) * 1;
 
         // Model (local-to-world) matrix
         rio::Matrix34f model_mtx;
         model_mtx.makeST(
-            {1, 1, 1},
-            {0, -8.f, 0});
+            {0.7f, 0.7f, 0.7f},
+            {0, -7.8f, 0});
 
         mMainModelNode = new ModelNode(mario_res_mdl, "cViewBlock", "cLightBlock", "cModelBlock");
 
@@ -188,7 +188,7 @@ void RootTask::createModel_(u16 index)
 
     mpModel = new Model();
     mpModel->initialize(arg, mShader);
-    mpModel->setScale({1 / 16.f, 1 / 16.f, 1 / 16.f});
+    mpModel->setScale({1 / 17.f, 1 / 17.f, 1 / 17.f});
 }
 
 void RootTask::calc_()
