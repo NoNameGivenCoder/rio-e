@@ -133,7 +133,7 @@ void RootTask::prepare_()
 
     FOV = 90.f;
     mMainBgmAudioNode = new AudioNode(mCamera, 1.0f);
-    updateProjectionMatrix();
+    startProjectionMatrix();
     {
         // Create view uniform block instance
         mpViewUniformBlock = new rio::UniformBlock();
@@ -143,7 +143,7 @@ void RootTask::prepare_()
         // Set light color
         mLightColor.set(0.625f, 1.0f, 1.0f);
         // Set light position
-        mLightPos.set(0.0f, 0.0f, 2.0f);
+        mLightPos.set(0.0f, 0.0f, 0.0f);
 
         // Create light uniform block instance
         mpLightUniformBlock = new rio::UniformBlock();
@@ -155,17 +155,18 @@ void RootTask::prepare_()
         // Load coin model
         rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("mario_body", "miiMarioBody");
 
+        f32 angle = rio::Mathf::deg2rad(20) * 1;
+
+        // Model (local-to-world) matrix
+        rio::Matrix34f model_mtx;
+        model_mtx.makeST(
+            {1, 1, 1},
+            {0, -8.f, 0});
+
         mMainModelNode = new ModelNode(mario_res_mdl, "cViewBlock", "cLightBlock", "cModelBlock");
 
-        rio::Matrix34f modelMxrt;
-
-        f32 angle = rio::Mathf::deg2rad(20);
-
-        modelMxrt.makeRT({angle, angle * 1.f / 3.f, angle * 2.f / 3.f}, {0, 0, 0});
-        modelMxrt.makeT({5, 5, 5});
-        modelMxrt.makeS({1, 1, 1});
-
-        mMainModelNode->setModelWorldMtx(modelMxrt);
+        // Set model's local-to-world matrix
+        mMainModelNode->setModelWorldMtx(model_mtx);
     }
 
     mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
@@ -223,7 +224,7 @@ void RootTask::calc_()
 
     // Calculate view-projection matrix (Projection x View)
     rio::Matrix44f view_proj_mtx;
-    view_proj_mtx.setMul(view_proj_mtx, view_mtx);
+    view_proj_mtx.setMul(mProjMtx, view_mtx);
 
     // Update view uniform block
     sViewBlock.view_pos = mCamera.pos();
@@ -305,7 +306,7 @@ void RootTask::Render()
 
                     if (ImGui::SliderFloat("FOV", &FOV, .5f, 100.f))
                     {
-                        updateProjectionMatrix();
+                        // updateProjectionMatrix();
                     }
 
                     ImGui::EndMenu();
@@ -477,7 +478,20 @@ void RootTask::updateProjectionMatrix()
         f32(window->getWidth()) / f32(window->getHeight()));
 
     // Calculate matrix
-    mProjMtx = proj.getMatrix();
+    rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));
+}
+
+void RootTask::startProjectionMatrix()
+{
+    // Get window instance
+    const rio::Window *const window = rio::Window::instance();
+
+    // Create perspective projection instance
+    rio::PerspectiveProjection proj(
+        0.1f,
+        100.0f,
+        rio::Mathf::deg2rad(FOV),
+        f32(window->getWidth()) / f32(window->getHeight()));
 
     // Calculate matrix
     rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));

@@ -25,10 +25,10 @@ private:
     void updateProjectionMatrix();
     void initImgui();
     void Render();
+    void startProjectionMatrix();
 
 #if RIO_IS_WIN
-    void
-    resize_(s32 width, s32 height);
+    void resize_(s32 width, s32 height);
     static void onResizeCallback_(s32 width, s32 height);
 #endif // RIO_IS_WIN
 
@@ -36,7 +36,7 @@ private:
     bool mInitialized;
     FFLResourceDesc mResourceDesc;
     Shader mShader;
-    rio::BaseMtx44f mProjMtx;
+    rio::Matrix44f mProjMtx;
     rio::LookAtCamera mCamera;
     float FOV;
     Model *mpModel;

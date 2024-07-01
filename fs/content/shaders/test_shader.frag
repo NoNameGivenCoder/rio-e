@@ -27,7 +27,7 @@ void main()
     vec4 texColor = texture(texture1, TexCoord);
 
     // ambient
-    float ambientStrength = 0.4f;
+    float ambientStrength = 0.9f;
     vec3 ambient = ambientStrength * lightColor;
 
     // diffuse
