@@ -11,7 +11,7 @@ INCLUDES := -I../../ninTexUtils/include -I../../rio/include -I../../FFL-Windows/
 # NDEBUG is required to build on 64 bit (ignore static asserts)
 # FFL_NO_OPEN_DATABASE makes sure it doesn't try to open the database by default if you don't need it
 # FFL_TEST_DISABLE_MII_COLOR_VERIFY is a testing option that allows you to use out of bound color values in CharInfo
-DEFS := -DFFL_MLC_PATH="\"./\"" -DRIO_DEBUG -DNDEBUG -DFFL_NO_OPEN_DATABASE -DFFL_TEST_DISABLE_MII_COLOR_VERIFY -DRIO_AUDIO_USE_SDL_MIXER $(DEFS)
+DEFS := -DFFL_MLC_PATH="\"./\"" -DRIO_DEBUG -DNDEBUG -DFFL_NO_OPEN_DATABASE -DFFL_TEST_DISABLE_MII_COLOR_VERIFY $(DEFS)
 
 # Binary name which you can change if you want
 EXEC := ffl_testing_2_debug64
@@ -27,7 +27,7 @@ PKG_CONFIG_PATH := include/.pkg-config-path-dummy-for-makefile/:$(PKG_CONFIG_PAT
 #export PKG_CONFIG_PATH  # not working???
 
 # libraries passed to pkg-config
-LIBS := zlib glew glfw3 sdl2_mixer
+LIBS := zlib glew glfw3
 # use pkg-config output as LDFLAGS and CFLAGS later on
 PKG_CONFIG_CFLAGS_CMD := $(TOOLCHAIN_PREFIX)pkg-config --cflags $(LIBS)
 $(info pkg-config cflags command: $(PKG_CONFIG_CFLAGS_CMD))
@@ -39,6 +39,8 @@ $(info pkg-config ldflags command: $(PKG_CONFIG_LDFLAGS_CMD))
 
 LDFLAGS := $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" $(PKG_CONFIG_LDFLAGS_CMD)) $(LDFLAGS)
 $(info $(LDFLAGS))
+
+# $(shell echo "$(LDFLAGS)")
 
 # Check the status and stop if there's an error
 #ifneq ($(.SHELLSTATUS), 0)

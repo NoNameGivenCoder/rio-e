@@ -9,7 +9,8 @@
 #include <gx2/utils.h>
 #endif // RIO_IS_CAFE
 
-namespace {
+namespace
+{
 
 #if RIO_IS_CAFE
 
@@ -21,205 +22,215 @@ namespace {
 #define GX2_COMP_SEL_XYZ1 GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_Y, GX2_SQ_SEL_Z, GX2_SQ_SEL_1)
 #define GX2_COMP_SEL_XYZW GX2_SEL_MASK(GX2_SQ_SEL_X, GX2_SQ_SEL_Y, GX2_SQ_SEL_Z, GX2_SQ_SEL_W)
 
-inline void GX2InitAttribStream(
-    GX2AttribStream* p_attribute,
-    u32 location,
-    u32 buffer,
-    u32 offset,
-    GX2AttribFormat format
-)
-{
-    static constexpr u32 sFormatMask[] = {
-        GX2_COMP_SEL_X001, GX2_COMP_SEL_XY01,
-        GX2_COMP_SEL_X001, GX2_COMP_SEL_X001,
-        GX2_COMP_SEL_XY01, GX2_COMP_SEL_X001,
-        GX2_COMP_SEL_X001, GX2_COMP_SEL_XY01,
-        GX2_COMP_SEL_XY01, GX2_COMP_SEL_XYZ1,
-        GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW,
-        GX2_COMP_SEL_XY01, GX2_COMP_SEL_XY01,
-        GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW,
-        GX2_COMP_SEL_XYZ1, GX2_COMP_SEL_XYZ1,
-        GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW
-    };
+    inline void GX2InitAttribStream(
+        GX2AttribStream *p_attribute,
+        u32 location,
+        u32 buffer,
+        u32 offset,
+        GX2AttribFormat format)
+    {
+        static constexpr u32 sFormatMask[] = {
+            GX2_COMP_SEL_X001, GX2_COMP_SEL_XY01,
+            GX2_COMP_SEL_X001, GX2_COMP_SEL_X001,
+            GX2_COMP_SEL_XY01, GX2_COMP_SEL_X001,
+            GX2_COMP_SEL_X001, GX2_COMP_SEL_XY01,
+            GX2_COMP_SEL_XY01, GX2_COMP_SEL_XYZ1,
+            GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW,
+            GX2_COMP_SEL_XY01, GX2_COMP_SEL_XY01,
+            GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW,
+            GX2_COMP_SEL_XYZ1, GX2_COMP_SEL_XYZ1,
+            GX2_COMP_SEL_XYZW, GX2_COMP_SEL_XYZW};
 
-    p_attribute->buffer     = buffer;
-    p_attribute->offset     = offset;
-    p_attribute->location   = location;
-    p_attribute->format     = format;
-    p_attribute->mask       = sFormatMask[format & 0xff];
-    p_attribute->type       = GX2_ATTRIB_INDEX_PER_VERTEX;
-    p_attribute->aluDivisor = 0;
-    p_attribute->endianSwap = GX2_ENDIAN_SWAP_DEFAULT;
-}
+        p_attribute->buffer = buffer;
+        p_attribute->offset = offset;
+        p_attribute->location = location;
+        p_attribute->format = format;
+        p_attribute->mask = sFormatMask[format & 0xff];
+        p_attribute->type = GX2_ATTRIB_INDEX_PER_VERTEX;
+        p_attribute->aluDivisor = 0;
+        p_attribute->endianSwap = GX2_ENDIAN_SWAP_DEFAULT;
+    }
 
 #endif // RIO_IS_CAFE
 
-
-const rio::BaseVec4f& getColorUniform(const FFLColor& color)
-{
-    return reinterpret_cast<const rio::BaseVec4f&>(color.r);
-}
-
-void safeNormalizeVec3(rio::BaseVec3f* vec) {
-    float magnitude = std::sqrt(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
-    if (magnitude != 0.0f) {
-        vec->x /= magnitude;
-        vec->y /= magnitude;
-        vec->z /= magnitude;
+    const rio::BaseVec4f &getColorUniform(const FFLColor &color)
+    {
+        return reinterpret_cast<const rio::BaseVec4f &>(color.r);
     }
 
-    vec->x = std::fmax(std::fmin(vec->x, 1.0f), -1.0f);
-    vec->y = std::fmax(std::fmin(vec->y, 1.0f), -1.0f);
-    vec->z = std::fmax(std::fmin(vec->z, 1.0f), -1.0f);
+    void safeNormalizeVec3(rio::BaseVec3f *vec)
+    {
+        float magnitude = std::sqrt(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+        if (magnitude != 0.0f)
+        {
+            vec->x /= magnitude;
+            vec->y /= magnitude;
+            vec->z /= magnitude;
+        }
 
-    if (vec->x == 1.0f || vec->x == -1.0f) {
-        vec->y = 0.0f;
-        vec->z = 0.0f;
-    } else if (vec->y == 1.0f || vec->y == -1.0f) {
-        vec->x = 0.0f;
-        vec->z = 0.0f;
-    } else if (vec->z == 1.0f || vec->z == -1.0f) {
-        vec->x = 0.0f;
-        vec->y = 0.0f;
+        vec->x = std::fmax(std::fmin(vec->x, 1.0f), -1.0f);
+        vec->y = std::fmax(std::fmin(vec->y, 1.0f), -1.0f);
+        vec->z = std::fmax(std::fmin(vec->z, 1.0f), -1.0f);
+
+        if (vec->x == 1.0f || vec->x == -1.0f)
+        {
+            vec->y = 0.0f;
+            vec->z = 0.0f;
+        }
+        else if (vec->y == 1.0f || vec->y == -1.0f)
+        {
+            vec->x = 0.0f;
+            vec->z = 0.0f;
+        }
+        else if (vec->z == 1.0f || vec->z == -1.0f)
+        {
+            vec->x = 0.0f;
+            vec->y = 0.0f;
+        }
     }
-}
 
-void gramSchmidtOrthonormalizeMtx34(rio::BaseMtx34f* mat)
-{
-    rio::BaseVec3f c0, c0Normalized, c1, c1Normalized, c1New, c2New;
+    void gramSchmidtOrthonormalizeMtx34(rio::BaseMtx34f *mat)
+    {
+        rio::BaseVec3f c0, c0Normalized, c1, c1Normalized, c1New, c2New;
 
-    // Extract and normalize the first column
-    c0.x = mat->m[0][0];
-    c0.y = mat->m[1][0];
-    c0.z = mat->m[2][0];
-    c0Normalized = c0;
-    safeNormalizeVec3(&c0Normalized);
+        // Extract and normalize the first column
+        c0.x = mat->m[0][0];
+        c0.y = mat->m[1][0];
+        c0.z = mat->m[2][0];
+        c0Normalized = c0;
+        safeNormalizeVec3(&c0Normalized);
 
-    // Extract and normalize the second column
-    c1.x = mat->m[0][1];
-    c1.y = mat->m[1][1];
-    c1.z = mat->m[2][1];
-    c1Normalized = c1;
-    safeNormalizeVec3(&c1Normalized);
+        // Extract and normalize the second column
+        c1.x = mat->m[0][1];
+        c1.y = mat->m[1][1];
+        c1.z = mat->m[2][1];
+        c1Normalized = c1;
+        safeNormalizeVec3(&c1Normalized);
 
-    // Compute the third column as the cross product of the first two normalized columns
-    c2New.x = c0Normalized.y * c1Normalized.z - c0Normalized.z * c1Normalized.y;
-    c2New.y = c0Normalized.z * c1Normalized.x - c0Normalized.x * c1Normalized.z;
-    c2New.z = c0Normalized.x * c1Normalized.y - c0Normalized.y * c1Normalized.x;
+        // Compute the third column as the cross product of the first two normalized columns
+        c2New.x = c0Normalized.y * c1Normalized.z - c0Normalized.z * c1Normalized.y;
+        c2New.y = c0Normalized.z * c1Normalized.x - c0Normalized.x * c1Normalized.z;
+        c2New.z = c0Normalized.x * c1Normalized.y - c0Normalized.y * c1Normalized.x;
 
-    // Compute the new second column as the cross product of the third column and the first normalized column
-    c1New.x = c2New.y * c0Normalized.z - c2New.z * c0Normalized.y;
-    c1New.y = c2New.z * c0Normalized.x - c2New.x * c0Normalized.z;
-    c1New.z = c2New.x * c0Normalized.y - c2New.y * c0Normalized.x;
+        // Compute the new second column as the cross product of the third column and the first normalized column
+        c1New.x = c2New.y * c0Normalized.z - c2New.z * c0Normalized.y;
+        c1New.y = c2New.z * c0Normalized.x - c2New.x * c0Normalized.z;
+        c1New.z = c2New.x * c0Normalized.y - c2New.y * c0Normalized.x;
 
-    // Update the matrix with the new orthonormal columns
-    mat->m[0][0] = c0Normalized.x;
-    mat->m[1][0] = c0Normalized.y;
-    mat->m[2][0] = c0Normalized.z;
+        // Update the matrix with the new orthonormal columns
+        mat->m[0][0] = c0Normalized.x;
+        mat->m[1][0] = c0Normalized.y;
+        mat->m[2][0] = c0Normalized.z;
 
-    mat->m[0][1] = c1New.x;
-    mat->m[1][1] = c1New.y;
-    mat->m[2][1] = c1New.z;
+        mat->m[0][1] = c1New.x;
+        mat->m[1][1] = c1New.y;
+        mat->m[2][1] = c1New.z;
 
-    mat->m[0][2] = c2New.x;
-    mat->m[1][2] = c2New.y;
-    mat->m[2][2] = c2New.z;
-}
-
-struct FFLiDefaultShaderMaterial
-{
-    FFLColor ambient;
-    FFLColor diffuse;
-    FFLColor specular;
-    f32 specularPower;
-    s32 specularMode;
-};
-
-const u32 cMaterialParamSize = 9;
-const FFLiDefaultShaderMaterial cMaterialParam[cMaterialParamSize] = {
-    { // ShapeFaceline
-        { 0.85f, 0.75f, 0.75f, 1.0f }, // ambient
-        { 0.75f, 0.75f, 0.75f, 1.0f }, // diffuse
-        { 0.30f, 0.30f, 0.30f, 1.0f }, // specular
-        1.2f, // specularPower
-        0 // specularMode
-    },
-    { // ShapeBeard
-        { 1.0f, 1.0f, 1.0f, 1.0f }, // ambient
-        { 0.7f, 0.7f, 0.7f, 1.0f }, // diffuse
-        { 0.0f, 0.0f, 0.0f, 1.0f }, // specular
-        40.0f, // specularPower
-        1 // specularMode
-    },
-    { // ShapeNose
-        { 0.90f, 0.85f, 0.85f, 1.0f }, // ambient
-        { 0.75f, 0.75f, 0.75f, 1.0f }, // diffuse
-        { 0.22f, 0.22f, 0.22f, 1.0f }, // specular
-        1.5f, // specularPower
-        0 // specularMode
-    },
-    { // ShapeForehead
-        { 0.85f, 0.75f, 0.75f, 1.0f }, // ambient
-        { 0.75f, 0.75f, 0.75f, 1.0f }, // diffuse
-        { 0.30f, 0.30f, 0.30f, 1.0f }, // specular
-        1.2f, // specularPower
-        0 // specularMode
-    },
-    { // ShapeHair
-        { 1.00f, 1.00f, 1.00f, 1.0f }, // ambient
-        { 0.70f, 0.70f, 0.70f, 1.0f }, // diffuse
-        { 0.35f, 0.35f, 0.35f, 1.0f }, // specular
-        10.0f, // specularPower
-        1 // specularMode
-    },
-    { // ShapeCap
-        { 0.75f, 0.75f, 0.75f, 1.0f }, // ambient
-        { 0.72f, 0.72f, 0.72f, 1.0f }, // diffuse
-        { 0.30f, 0.30f, 0.30f, 1.0f }, // specular
-        1.5f, // specularPower
-        0 // specularMode
-    },
-    { // ShapeMask
-        { 1.0f, 1.0f, 1.0f, 1.0f }, // ambient
-        { 0.7f, 0.7f, 0.7f, 1.0f }, // diffuse
-        { 0.0f, 0.0f, 0.0f, 1.0f }, // specular
-        40.0f, // specularPower
-        1 // specularMode
-    },
-    { // ShapeNoseline
-        { 1.0f, 1.0f, 1.0f, 1.0f }, // ambient
-        { 0.7f, 0.7f, 0.7f, 1.0f }, // diffuse
-        { 0.0f, 0.0f, 0.0f, 1.0f }, // specular
-        40.0f, // specularPower
-        1 // specularMode
-    },
-    { // ShapeGlass
-        { 1.0f, 1.0f, 1.0f, 1.0f }, // ambient
-        { 0.7f, 0.7f, 0.7f, 1.0f }, // diffuse
-        { 0.0f, 0.0f, 0.0f, 1.0f }, // specular
-        40.0f, // specularPower
-        1 // specularMode
+        mat->m[0][2] = c2New.x;
+        mat->m[1][2] = c2New.y;
+        mat->m[2][2] = c2New.z;
     }
-};
 
-const FFLColor cLightAmbient  = { 0.73f, 0.73f, 0.73f, 1.0f };
-const FFLColor cLightDiffuse  = { 0.60f, 0.60f, 0.60f, 1.0f };
-const FFLColor cLightSpecular = { 0.70f, 0.70f, 0.70f, 1.0f };
+    struct FFLiDefaultShaderMaterial
+    {
+        FFLColor ambient;
+        FFLColor diffuse;
+        FFLColor specular;
+        f32 specularPower;
+        s32 specularMode;
+    };
 
-const rio::BaseVec3f cLightDir = { -0.4531539381f, 0.4226179123f, 0.7848858833f };
+    const u32 cMaterialParamSize = 9;
+    const FFLiDefaultShaderMaterial cMaterialParam[cMaterialParamSize] = {
+        {
+            // ShapeFaceline
+            {0.85f, 0.75f, 0.75f, 1.0f}, // ambient
+            {0.75f, 0.75f, 0.75f, 1.0f}, // diffuse
+            {0.30f, 0.30f, 0.30f, 1.0f}, // specular
+            1.2f,                        // specularPower
+            0                            // specularMode
+        },
+        {
+            // ShapeBeard
+            {1.0f, 1.0f, 1.0f, 1.0f}, // ambient
+            {0.7f, 0.7f, 0.7f, 1.0f}, // diffuse
+            {0.0f, 0.0f, 0.0f, 1.0f}, // specular
+            40.0f,                    // specularPower
+            1                         // specularMode
+        },
+        {
+            // ShapeNose
+            {0.90f, 0.85f, 0.85f, 1.0f}, // ambient
+            {0.75f, 0.75f, 0.75f, 1.0f}, // diffuse
+            {0.22f, 0.22f, 0.22f, 1.0f}, // specular
+            1.5f,                        // specularPower
+            0                            // specularMode
+        },
+        {
+            // ShapeForehead
+            {0.85f, 0.75f, 0.75f, 1.0f}, // ambient
+            {0.75f, 0.75f, 0.75f, 1.0f}, // diffuse
+            {0.30f, 0.30f, 0.30f, 1.0f}, // specular
+            1.2f,                        // specularPower
+            0                            // specularMode
+        },
+        {
+            // ShapeHair
+            {1.00f, 1.00f, 1.00f, 1.0f}, // ambient
+            {0.70f, 0.70f, 0.70f, 1.0f}, // diffuse
+            {0.35f, 0.35f, 0.35f, 1.0f}, // specular
+            10.0f,                       // specularPower
+            1                            // specularMode
+        },
+        {
+            // ShapeCap
+            {0.75f, 0.75f, 0.75f, 1.0f}, // ambient
+            {0.72f, 0.72f, 0.72f, 1.0f}, // diffuse
+            {0.30f, 0.30f, 0.30f, 1.0f}, // specular
+            1.5f,                        // specularPower
+            0                            // specularMode
+        },
+        {
+            // ShapeMask
+            {1.0f, 1.0f, 1.0f, 1.0f}, // ambient
+            {0.7f, 0.7f, 0.7f, 1.0f}, // diffuse
+            {0.0f, 0.0f, 0.0f, 1.0f}, // specular
+            40.0f,                    // specularPower
+            1                         // specularMode
+        },
+        {
+            // ShapeNoseline
+            {1.0f, 1.0f, 1.0f, 1.0f}, // ambient
+            {0.7f, 0.7f, 0.7f, 1.0f}, // diffuse
+            {0.0f, 0.0f, 0.0f, 1.0f}, // specular
+            40.0f,                    // specularPower
+            1                         // specularMode
+        },
+        {
+            // ShapeGlass
+            {1.0f, 1.0f, 1.0f, 1.0f}, // ambient
+            {0.7f, 0.7f, 0.7f, 1.0f}, // diffuse
+            {0.0f, 0.0f, 0.0f, 1.0f}, // specular
+            40.0f,                    // specularPower
+            1                         // specularMode
+        }};
 
-const FFLColor cRimColor = { 0.3f, 0.3f, 0.3f, 1.0f };
-const f32 cRimPower = 2.0f;
+    const FFLColor cLightAmbient = {0.73f, 0.73f, 0.73f, 1.0f};
+    const FFLColor cLightDiffuse = {0.60f, 0.60f, 0.60f, 1.0f};
+    const FFLColor cLightSpecular = {0.70f, 0.70f, 0.70f, 1.0f};
+
+    const rio::BaseVec3f cLightDir = {-0.4531539381f, 0.4226179123f, 0.7848858833f};
+
+    const FFLColor cRimColor = {0.3f, 0.3f, 0.3f, 1.0f};
+    const f32 cRimPower = 2.0f;
 
 }
 
 Shader::Shader()
 #if RIO_IS_CAFE
-    : mAttribute()
-    , mFetchShader()
+    : mAttribute(), mFetchShader()
 #elif RIO_IS_WIN
-    : mVBOHandle()
-    , mVAOHandle()
+    : mVBOHandle(), mVAOHandle()
 #endif
 {
     rio::MemUtil::set(mVertexUniformLocation, u8(-1), sizeof(mVertexUniformLocation));
@@ -251,34 +262,34 @@ void Shader::initialize()
 {
     mShader.load("FFLShader", rio::Shader::MODE_UNIFORM_REGISTER);
 
-    mVertexUniformLocation[VERTEX_UNIFORM_IT]   = mShader.getVertexUniformLocation("u_it");
-    mVertexUniformLocation[VERTEX_UNIFORM_MV]   = mShader.getVertexUniformLocation("u_mv");
+    mVertexUniformLocation[VERTEX_UNIFORM_IT] = mShader.getVertexUniformLocation("u_it");
+    mVertexUniformLocation[VERTEX_UNIFORM_MV] = mShader.getVertexUniformLocation("u_mv");
     mVertexUniformLocation[VERTEX_UNIFORM_PROJ] = mShader.getVertexUniformLocation("u_proj");
 
-    mPixelUniformLocation[PIXEL_UNIFORM_CONST1]                     = mShader.getFragmentUniformLocation("u_const1");
-    mPixelUniformLocation[PIXEL_UNIFORM_CONST2]                     = mShader.getFragmentUniformLocation("u_const2");
-    mPixelUniformLocation[PIXEL_UNIFORM_CONST3]                     = mShader.getFragmentUniformLocation("u_const3");
-    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_AMBIENT]              = mShader.getFragmentUniformLocation("u_light_ambient");
-    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_DIFFUSE]              = mShader.getFragmentUniformLocation("u_light_diffuse");
-    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_DIR]                  = mShader.getFragmentUniformLocation("u_light_dir");
-    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_ENABLE]               = mShader.getFragmentUniformLocation("u_light_enable");
-    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_SPECULAR]             = mShader.getFragmentUniformLocation("u_light_specular");
-    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_AMBIENT]           = mShader.getFragmentUniformLocation("u_material_ambient");
-    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_DIFFUSE]           = mShader.getFragmentUniformLocation("u_material_diffuse");
-    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR]          = mShader.getFragmentUniformLocation("u_material_specular");
-    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR_MODE]     = mShader.getFragmentUniformLocation("u_material_specular_mode");
-    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR_POWER]    = mShader.getFragmentUniformLocation("u_material_specular_power");
-    mPixelUniformLocation[PIXEL_UNIFORM_MODE]                       = mShader.getFragmentUniformLocation("u_mode");
-    mPixelUniformLocation[PIXEL_UNIFORM_RIM_COLOR]                  = mShader.getFragmentUniformLocation("u_rim_color");
-    mPixelUniformLocation[PIXEL_UNIFORM_RIM_POWER]                  = mShader.getFragmentUniformLocation("u_rim_power");
+    mPixelUniformLocation[PIXEL_UNIFORM_CONST1] = mShader.getFragmentUniformLocation("u_const1");
+    mPixelUniformLocation[PIXEL_UNIFORM_CONST2] = mShader.getFragmentUniformLocation("u_const2");
+    mPixelUniformLocation[PIXEL_UNIFORM_CONST3] = mShader.getFragmentUniformLocation("u_const3");
+    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_AMBIENT] = mShader.getFragmentUniformLocation("u_light_ambient");
+    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_DIFFUSE] = mShader.getFragmentUniformLocation("u_light_diffuse");
+    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_DIR] = mShader.getFragmentUniformLocation("u_light_dir");
+    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_ENABLE] = mShader.getFragmentUniformLocation("u_light_enable");
+    mPixelUniformLocation[PIXEL_UNIFORM_LIGHT_SPECULAR] = mShader.getFragmentUniformLocation("u_light_specular");
+    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_AMBIENT] = mShader.getFragmentUniformLocation("u_material_ambient");
+    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_DIFFUSE] = mShader.getFragmentUniformLocation("u_material_diffuse");
+    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR] = mShader.getFragmentUniformLocation("u_material_specular");
+    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR_MODE] = mShader.getFragmentUniformLocation("u_material_specular_mode");
+    mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR_POWER] = mShader.getFragmentUniformLocation("u_material_specular_power");
+    mPixelUniformLocation[PIXEL_UNIFORM_MODE] = mShader.getFragmentUniformLocation("u_mode");
+    mPixelUniformLocation[PIXEL_UNIFORM_RIM_COLOR] = mShader.getFragmentUniformLocation("u_rim_color");
+    mPixelUniformLocation[PIXEL_UNIFORM_RIM_POWER] = mShader.getFragmentUniformLocation("u_rim_power");
 
     mSamplerLocation = mShader.getFragmentSamplerLocation("s_texture");
 
-    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR]     = mShader.getVertexAttribLocation("a_color");
-    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL]    = mShader.getVertexAttribLocation("a_normal");
-    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION]  = mShader.getVertexAttribLocation("a_position");
-    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT]   = mShader.getVertexAttribLocation("a_tangent");
-    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD]  = mShader.getVertexAttribLocation("a_texCoord");
+    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR] = mShader.getVertexAttribLocation("a_color");
+    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL] = mShader.getVertexAttribLocation("a_normal");
+    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION] = mShader.getVertexAttribLocation("a_position");
+    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT] = mShader.getVertexAttribLocation("a_tangent");
+    mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD] = mShader.getVertexAttribLocation("a_texCoord");
 
 #if RIO_IS_CAFE
     GX2InitAttribStream(
@@ -286,40 +297,35 @@ void Shader::initialize()
         mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION],
         FFL_ATTRIBUTE_BUFFER_TYPE_POSITION,
         0,
-        GX2_ATTRIB_FORMAT_FLOAT_32_32_32
-    );
+        GX2_ATTRIB_FORMAT_FLOAT_32_32_32);
     GX2InitAttribStream(
         &(mAttribute[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD]),
         mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD],
         FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD,
         0,
-        GX2_ATTRIB_FORMAT_FLOAT_32_32
-    );
+        GX2_ATTRIB_FORMAT_FLOAT_32_32);
     GX2InitAttribStream(
         &(mAttribute[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL]),
         mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL],
         FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL,
         0,
-        GX2_ATTRIB_FORMAT_SNORM_10_10_10_2
-    );
+        GX2_ATTRIB_FORMAT_SNORM_10_10_10_2);
     GX2InitAttribStream(
         &(mAttribute[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT]),
         mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT],
         FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT,
         0,
-        GX2_ATTRIB_FORMAT_SNORM_8_8_8_8
-    );
+        GX2_ATTRIB_FORMAT_SNORM_8_8_8_8);
     GX2InitAttribStream(
         &(mAttribute[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR]),
         mAttributeLocation[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR],
         FFL_ATTRIBUTE_BUFFER_TYPE_COLOR,
         0,
-        GX2_ATTRIB_FORMAT_UNORM_8_8_8_8
-    );
+        GX2_ATTRIB_FORMAT_UNORM_8_8_8_8);
 
     u32 size = GX2CalcFetchShaderSizeEx(FFL_ATTRIBUTE_BUFFER_TYPE_MAX, GX2_FETCH_SHADER_TESSELLATION_NONE, GX2_TESSELLATION_MODE_DISCRETE);
-    void* buffer = rio::MemUtil::alloc(size, GX2_SHADER_ALIGNMENT);
-    GX2InitFetchShaderEx(&mFetchShader, (u8*)buffer, FFL_ATTRIBUTE_BUFFER_TYPE_MAX, mAttribute, GX2_FETCH_SHADER_TESSELLATION_NONE, GX2_TESSELLATION_MODE_DISCRETE);
+    void *buffer = rio::MemUtil::alloc(size, GX2_SHADER_ALIGNMENT);
+    GX2InitFetchShaderEx(&mFetchShader, (u8 *)buffer, FFL_ATTRIBUTE_BUFFER_TYPE_MAX, mAttribute, GX2_FETCH_SHADER_TESSELLATION_NONE, GX2_TESSELLATION_MODE_DISCRETE);
 #elif RIO_IS_WIN
     RIO_ASSERT(mVAOHandle == GL_NONE);
     RIO_GL_CALL(glCreateBuffers(FFL_ATTRIBUTE_BUFFER_TYPE_MAX, mVBOHandle));
@@ -357,12 +363,12 @@ void Shader::bind(bool light_enable) const
     mShader.setUniform(cRimPower, u32(-1), mPixelUniformLocation[PIXEL_UNIFORM_RIM_POWER]);
 }
 
-void Shader::setViewUniform(const rio::BaseMtx34f& model_mtx, const rio::BaseMtx34f& view_mtx, const rio::BaseMtx44f& proj_mtx) const
+void Shader::setViewUniform(const rio::BaseMtx34f &model_mtx, const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx) const
 {
     mShader.setUniform(proj_mtx, mVertexUniformLocation[VERTEX_UNIFORM_PROJ], u32(-1));
 
     rio::Matrix34f mv;
-    mv.setMul(static_cast<const rio::Matrix34f&>(view_mtx), static_cast<const rio::Matrix34f&>(model_mtx));
+    mv.setMul(static_cast<const rio::Matrix34f &>(view_mtx), static_cast<const rio::Matrix34f &>(model_mtx));
     rio::Matrix44f mv44;
     mv44.fromMatrix34(mv);
     mShader.setUniform(mv44, mVertexUniformLocation[VERTEX_UNIFORM_MV], u32(-1));
@@ -370,11 +376,10 @@ void Shader::setViewUniform(const rio::BaseMtx34f& model_mtx, const rio::BaseMtx
     rio::Matrix34f it34 = mv;
     it34.setInverseTranspose(mv);
     gramSchmidtOrthonormalizeMtx34(&it34);
-    rio::BaseMtx33f it {
+    rio::BaseMtx33f it{
         it34.m[0][0], it34.m[1][0], it34.m[2][0],
         it34.m[0][1], it34.m[1][1], it34.m[2][1],
-        it34.m[0][2], it34.m[1][2], it34.m[2][2]
-    };
+        it34.m[0][2], it34.m[1][2], it34.m[2][2]};
     mShader.setUniformColumnMajor(it, mVertexUniformLocation[VERTEX_UNIFORM_IT], u32(-1));
 }
 
@@ -384,7 +389,7 @@ void Shader::applyAlphaTest(bool enable, rio::Graphics::CompareFunc func, f32 re
     GX2SetAlphaTest(enable, GX2CompareFunction(func), ref);
 #elif RIO_IS_WIN
     mShader.setUniform(u32(func - GL_NEVER), u32(-1), mShader.getFragmentUniformLocation("PS_PUSH.alphaFunc"));
-    mShader.setUniform(ref,                  u32(-1), mShader.getFragmentUniformLocation("PS_PUSH.alphaRef"));
+    mShader.setUniform(ref, u32(-1), mShader.getFragmentUniformLocation("PS_PUSH.alphaRef"));
 #endif
 }
 
@@ -413,12 +418,12 @@ void Shader::setCulling(FFLCullMode mode)
     render_state.applyCullingAndPolygonModeAndPolygonOffset();
 }
 
-void Shader::applyAlphaTestCallback_(void* p_obj, bool enable, rio::Graphics::CompareFunc func, f32 ref)
+void Shader::applyAlphaTestCallback_(void *p_obj, bool enable, rio::Graphics::CompareFunc func, f32 ref)
 {
-    static_cast<Shader*>(p_obj)->applyAlphaTest(enable, func, ref);
+    static_cast<Shader *>(p_obj)->applyAlphaTest(enable, func, ref);
 }
 
-void Shader::bindTexture_(const FFLModulateParam& modulateParam)
+void Shader::bindTexture_(const FFLModulateParam &modulateParam)
 {
     if (modulateParam.pTexture2D != nullptr)
     {
@@ -427,7 +432,7 @@ void Shader::bindTexture_(const FFLModulateParam& modulateParam)
     }
 }
 
-void Shader::setConstColor_(u32 ps_loc, const FFLColor& color)
+void Shader::setConstColor_(u32 ps_loc, const FFLColor &color)
 {
     mShader.setUniform(getColorUniform(color), u32(-1), ps_loc);
 }
@@ -437,7 +442,7 @@ void Shader::setModulateMode_(FFLModulateMode mode)
     mShader.setUniform(s32(mode), u32(-1), mPixelUniformLocation[PIXEL_UNIFORM_MODE]);
 }
 
-void Shader::setModulate_(const FFLModulateParam& modulateParam)
+void Shader::setModulate_(const FFLModulateParam &modulateParam)
 {
     setModulateMode_(modulateParam.mode);
 
@@ -461,7 +466,7 @@ void Shader::setModulate_(const FFLModulateParam& modulateParam)
     bindTexture_(modulateParam);
 }
 
-void Shader::setMaterial_(const FFLDrawParam& drawParam)
+void Shader::setMaterial_(const FFLDrawParam &drawParam)
 {
     if (drawParam.modulateParam.type >= cMaterialParamSize)
         return;
@@ -478,7 +483,7 @@ void Shader::setMaterial_(const FFLDrawParam& drawParam)
     mShader.setUniform(materialSpecularMode, u32(-1), mPixelUniformLocation[PIXEL_UNIFORM_MATERIAL_SPECULAR_MODE]);
 }
 
-void Shader::draw_(const FFLDrawParam& draw_param)
+void Shader::draw_(const FFLDrawParam &draw_param)
 {
     setCulling(draw_param.cullMode);
     setModulate_(draw_param.modulateParam);
@@ -491,40 +496,35 @@ void Shader::draw_(const FFLDrawParam& draw_param)
             FFL_ATTRIBUTE_BUFFER_TYPE_POSITION,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION].size,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION].stride,
-            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION].ptr
-        );
+            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_POSITION].ptr);
         GX2SetAttribBuffer(
             FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD].size,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD].stride,
-            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD].ptr
-        );
+            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD].ptr);
         GX2SetAttribBuffer(
             FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL].size,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL].stride,
-            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL].ptr
-        );
+            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL].ptr);
         GX2SetAttribBuffer(
             FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT].size,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT].stride,
-            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT].ptr
-        );
+            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT].ptr);
         GX2SetAttribBuffer(
             FFL_ATTRIBUTE_BUFFER_TYPE_COLOR,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR].size,
             draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR].stride,
-            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR].ptr
-        );
+            draw_param.attributeBufferParam.attributeBuffers[FFL_ATTRIBUTE_BUFFER_TYPE_COLOR].ptr);
 #elif RIO_IS_WIN
         {
             FFLAttributeBufferType type = FFL_ATTRIBUTE_BUFFER_TYPE_POSITION;
 
-            const FFLAttributeBuffer& buffer = draw_param.attributeBufferParam.attributeBuffers[type];
+            const FFLAttributeBuffer &buffer = draw_param.attributeBufferParam.attributeBuffers[type];
             s32 location = mAttributeLocation[type];
 
-            void* ptr = buffer.ptr;
+            void *ptr = buffer.ptr;
 
             if (ptr && location != -1)
             {
@@ -532,7 +532,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
 
                 if (stride == 0)
                 {
-                    RIO_GL_CALL(glVertexAttrib3fv(location, static_cast<f32*>(ptr)));
+                    RIO_GL_CALL(glVertexAttrib3fv(location, static_cast<f32 *>(ptr)));
                 }
                 else
                 {
@@ -549,18 +549,17 @@ void Shader::draw_(const FFLDrawParam& draw_param)
                         GL_FLOAT,
                         false,
                         stride,
-                        nullptr
-                    ));
+                        nullptr));
                 }
             }
         }
         {
             FFLAttributeBufferType type = FFL_ATTRIBUTE_BUFFER_TYPE_TEXCOORD;
 
-            const FFLAttributeBuffer& buffer = draw_param.attributeBufferParam.attributeBuffers[type];
+            const FFLAttributeBuffer &buffer = draw_param.attributeBufferParam.attributeBuffers[type];
             s32 location = mAttributeLocation[type];
 
-            void* ptr = buffer.ptr;
+            void *ptr = buffer.ptr;
 
             if (ptr && location != -1)
             {
@@ -568,7 +567,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
 
                 if (stride == 0)
                 {
-                    RIO_GL_CALL(glVertexAttrib2fv(location, static_cast<f32*>(ptr)));
+                    RIO_GL_CALL(glVertexAttrib2fv(location, static_cast<f32 *>(ptr)));
                 }
                 else
                 {
@@ -585,18 +584,17 @@ void Shader::draw_(const FFLDrawParam& draw_param)
                         GL_FLOAT,
                         false,
                         stride,
-                        nullptr
-                    ));
+                        nullptr));
                 }
             }
         }
         {
             FFLAttributeBufferType type = FFL_ATTRIBUTE_BUFFER_TYPE_NORMAL;
 
-            const FFLAttributeBuffer& buffer = draw_param.attributeBufferParam.attributeBuffers[type];
+            const FFLAttributeBuffer &buffer = draw_param.attributeBufferParam.attributeBuffers[type];
             s32 location = mAttributeLocation[type];
 
-            void* ptr = buffer.ptr;
+            void *ptr = buffer.ptr;
 
             if (ptr && location != -1)
             {
@@ -604,7 +602,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
 
                 if (stride == 0)
                 {
-                    RIO_GL_CALL(glVertexAttribP4ui(location, GL_INT_2_10_10_10_REV, true, *static_cast<u32*>(ptr)));
+                    RIO_GL_CALL(glVertexAttribP4ui(location, GL_INT_2_10_10_10_REV, true, *static_cast<u32 *>(ptr)));
                 }
                 else
                 {
@@ -621,18 +619,17 @@ void Shader::draw_(const FFLDrawParam& draw_param)
                         GL_INT_2_10_10_10_REV,
                         true,
                         stride,
-                        nullptr
-                    ));
+                        nullptr));
                 }
             }
         }
         {
             FFLAttributeBufferType type = FFL_ATTRIBUTE_BUFFER_TYPE_TANGENT;
 
-            const FFLAttributeBuffer& buffer = draw_param.attributeBufferParam.attributeBuffers[type];
+            const FFLAttributeBuffer &buffer = draw_param.attributeBufferParam.attributeBuffers[type];
             s32 location = mAttributeLocation[type];
 
-            void* ptr = buffer.ptr;
+            void *ptr = buffer.ptr;
 
             if (ptr && location != -1)
             {
@@ -640,7 +637,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
 
                 if (stride == 0)
                 {
-                    RIO_GL_CALL(glVertexAttrib4Nbv(location, static_cast<s8*>(ptr)));
+                    RIO_GL_CALL(glVertexAttrib4Nbv(location, static_cast<s8 *>(ptr)));
                 }
                 else
                 {
@@ -657,18 +654,17 @@ void Shader::draw_(const FFLDrawParam& draw_param)
                         GL_BYTE,
                         true,
                         stride,
-                        nullptr
-                    ));
+                        nullptr));
                 }
             }
         }
         {
             FFLAttributeBufferType type = FFL_ATTRIBUTE_BUFFER_TYPE_COLOR;
 
-            const FFLAttributeBuffer& buffer = draw_param.attributeBufferParam.attributeBuffers[type];
+            const FFLAttributeBuffer &buffer = draw_param.attributeBufferParam.attributeBuffers[type];
             s32 location = mAttributeLocation[type];
 
-            void* ptr = buffer.ptr;
+            void *ptr = buffer.ptr;
 
             if (ptr && location != -1)
             {
@@ -676,7 +672,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
 
                 if (stride == 0)
                 {
-                    RIO_GL_CALL(glVertexAttrib4Nubv(location, static_cast<u8*>(ptr)));
+                    RIO_GL_CALL(glVertexAttrib4Nubv(location, static_cast<u8 *>(ptr)));
                 }
                 else
                 {
@@ -693,8 +689,7 @@ void Shader::draw_(const FFLDrawParam& draw_param)
                         GL_UNSIGNED_BYTE,
                         true,
                         stride,
-                        nullptr
-                    ));
+                        nullptr));
                 }
             }
         }
@@ -703,17 +698,16 @@ void Shader::draw_(const FFLDrawParam& draw_param)
         rio::Drawer::DrawElements(
             draw_param.primitiveParam.primitiveType,
             draw_param.primitiveParam.indexCount,
-            (const u16*)draw_param.primitiveParam.pIndexBuffer
-        );
+            (const u16 *)draw_param.primitiveParam.pIndexBuffer);
     }
 }
 
-void Shader::drawCallback_(void* p_obj, const FFLDrawParam& draw_param)
+void Shader::drawCallback_(void *p_obj, const FFLDrawParam &draw_param)
 {
-    static_cast<Shader*>(p_obj)->draw_(draw_param);
+    static_cast<Shader *>(p_obj)->draw_(draw_param);
 }
 
-void Shader::setMatrix_(const rio::BaseMtx44f& matrix)
+void Shader::setMatrix_(const rio::BaseMtx44f &matrix)
 {
     mShader.setUniform(matrix, mVertexUniformLocation[VERTEX_UNIFORM_PROJ], u32(-1));
     mShader.setUniformColumnMajor(rio::Matrix44f::ident, mVertexUniformLocation[VERTEX_UNIFORM_MV], u32(-1));
@@ -721,12 +715,11 @@ void Shader::setMatrix_(const rio::BaseMtx44f& matrix)
     static const rio::BaseMtx33f ident33 = {
         1.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
-    };
+        0.0f, 0.0f, 1.0f};
     mShader.setUniformColumnMajor(ident33, mVertexUniformLocation[VERTEX_UNIFORM_IT], u32(-1));
 }
 
-void Shader::setMatrixCallback_(void* p_obj, const rio::BaseMtx44f& matrix)
+void Shader::setMatrixCallback_(void *p_obj, const rio::BaseMtx44f &matrix)
 {
-    static_cast<Shader*>(p_obj)->setMatrix_(matrix);
+    static_cast<Shader *>(p_obj)->setMatrix_(matrix);
 }

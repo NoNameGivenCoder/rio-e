@@ -11,9 +11,14 @@
 #include <gfx/rio_Window.h>
 #include <string>
 #include <stdio.h>
+#include <gfx/mdl/res/rio_ModelCacher.h>
+#include <gfx/rio_PrimitiveRenderer.h>
+#include <gpu/rio_Drawer.h>
+#include <gpu/rio_RenderState.h>
 
 #include <helpers/CameraController.h>
 #include <helpers/audio/AudioNode.h>
+#include <helpers/model/ModelNode.h>
 
 #if RIO_IS_CAFE
 #include <controller/rio_ControllerMgr.h>
@@ -29,6 +34,9 @@
 #endif // RIO_IS_CAFE
 #include <format>
 #include <helpers/ui/ThemeMgr.h>
+
+__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::ViewBlock RootTask::sViewBlock;
+__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::LightBlock RootTask::sLightBlock;
 
 RootTask::RootTask()
     : ITask("FFL Testing"), mInitialized(false)
@@ -125,8 +133,42 @@ void RootTask::prepare_()
 
     FOV = 90.f;
     mMainBgmAudioNode = new AudioNode(mCamera, 1.0f);
-    mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
     updateProjectionMatrix();
+    {
+        // Create view uniform block instance
+        mpViewUniformBlock = new rio::UniformBlock();
+        // Set base data for view uniform block
+        mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
+
+        // Set light color
+        mLightColor.set(0.625f, 1.0f, 1.0f);
+        // Set light position
+        mLightPos.set(0.0f, 0.0f, 2.0f);
+
+        // Create light uniform block instance
+        mpLightUniformBlock = new rio::UniformBlock();
+        // Set light uniform block data and invalidate cache now as it won't be modified
+        sLightBlock.light_color = mLightColor;
+        sLightBlock.light_pos = mLightPos;
+        mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(ModelNode::LightBlock));
+
+        // Load coin model
+        rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("mario_body", "miiMarioBody");
+
+        mMainModelNode = new ModelNode(mario_res_mdl, "cViewBlock", "cLightBlock", "cModelBlock");
+
+        rio::Matrix34f modelMxrt;
+
+        f32 angle = rio::Mathf::deg2rad(20);
+
+        modelMxrt.makeRT({angle, angle * 1.f / 3.f, angle * 2.f / 3.f}, {0, 0, 0});
+        modelMxrt.makeT({5, 5, 5});
+        modelMxrt.makeS({1, 1, 1});
+
+        mMainModelNode->setModelWorldMtx(modelMxrt);
+    }
+
+    mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
     isDebuggingOpen = false;
     mInitialized = true;
 }
@@ -171,6 +213,36 @@ void RootTask::calc_()
     rio::Window::instance()->clearDepthStencil();
 
     mMainBgmAudioNode->UpdateAudio(mCamera);
+
+    // Get view matrix
+    rio::Matrix34f view_mtx;
+    mCamera.getMatrix(&view_mtx);
+
+    // Set primitive renderer camera
+    rio::PrimitiveRenderer::instance()->setCamera(mCamera);
+
+    // Calculate view-projection matrix (Projection x View)
+    rio::Matrix44f view_proj_mtx;
+    view_proj_mtx.setMul(view_proj_mtx, view_mtx);
+
+    // Update view uniform block
+    sViewBlock.view_pos = mCamera.pos();
+    sViewBlock.view_proj_mtx = view_proj_mtx;
+    mpViewUniformBlock->setSubDataInvalidate(&sViewBlock, 0, sizeof(ModelNode::ViewBlock));
+
+    // Restore default GPU render state
+    rio::RenderState render_state;
+    render_state.apply();
+
+    mMainModelNode->Draw(*mpViewUniformBlock, *mpLightUniformBlock);
+    rio::PrimitiveRenderer::instance()->begin();
+    {
+        rio::PrimitiveRenderer::instance()->drawSphere8x16(
+            mLightPos, 0.125f,
+            rio::Color4f{mLightColor.x, mLightColor.y, mLightColor.z, 1.0f});
+    }
+    rio::PrimitiveRenderer::instance()->end();
+
     Render();
 }
 
@@ -312,6 +384,7 @@ void RootTask::exit_()
     delete mpModel; // FFLCharModel destruction must happen before FFLExit
     delete[] miiBufferSize;
     delete mMainBgmAudioNode;
+    delete mMainModelNode;
 
     FFLExit();
 
@@ -405,6 +478,12 @@ void RootTask::updateProjectionMatrix()
 
     // Calculate matrix
     mProjMtx = proj.getMatrix();
+
+    // Calculate matrix
+    rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));
+
+    // Set primitive renderer projection
+    rio::PrimitiveRenderer::instance()->setProjection(proj);
 }
 
 #if RIO_IS_WIN

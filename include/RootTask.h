@@ -7,6 +7,7 @@
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
 #include <helpers/audio/AudioNode.h>
+#include <helpers/model/ModelNode.h>
 
 class Model;
 
@@ -43,6 +44,15 @@ private:
     void *miiBufferSize;
     ImGuiIO *p_io;
     AudioNode *mMainBgmAudioNode;
+    ModelNode *mMainModelNode;
 
     bool isDebuggingOpen;
+
+    rio::UniformBlock *mpViewUniformBlock;
+    rio::UniformBlock *mpLightUniformBlock;
+
+    rio::Vector3f mLightColor;
+    rio::Vector3f mLightPos;
+    static ModelNode::ViewBlock sViewBlock;
+    static ModelNode::LightBlock sLightBlock;
 };

@@ -1,6 +1,5 @@
 #include <RootTask.h>
 #include <rio.h>
-#include <SDL2/SDL.h>
 
 static const rio::InitializeArg cInitializeArg = {
     .window = {
