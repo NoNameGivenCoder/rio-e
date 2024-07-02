@@ -19,6 +19,7 @@
 #include <helpers/CameraController.h>
 #include <helpers/audio/AudioNode.h>
 #include <helpers/model/ModelNode.h>
+#include <helpers/model/LightNode.h>
 
 #if RIO_IS_CAFE
 #include <controller/rio_ControllerMgr.h>
@@ -36,7 +37,7 @@
 #include <helpers/ui/ThemeMgr.h>
 
 __attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::ViewBlock RootTask::sViewBlock;
-__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::LightBlock RootTask::sLightBlock;
+__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) LightNode::LightBlock RootTask::sLightBlock;
 
 RootTask::RootTask()
     : ITask("FFL Testing"), mInitialized(false)
@@ -140,17 +141,13 @@ void RootTask::prepare_()
         // Set base data for view uniform block
         mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
 
-        // Set light color
-        mLightColor.set(.7f, .7f, .7f);
-        // Set light position
-        mLightPos.set(-8.0f, 10.0f, 20.0f);
-
         // Create light uniform block instance
         mpLightUniformBlock = new rio::UniformBlock();
         // Set light uniform block data and invalidate cache now as it won't be modified
-        sLightBlock.light_color = mLightColor;
-        sLightBlock.light_pos = mLightPos;
-        mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(ModelNode::LightBlock));
+        mLightNode = new LightNode({0.7f, 0.7f, 0.7f, 1.f}, {-8.0f, 10.0f, 20.0f}, {1, 1, 1}, LightNode::LIGHT_NODE_VISIBLE, LightNode::LIGHT_NODE_SPHERE, 0.125f);
+        sLightBlock = mLightNode->GetLightBlock();
+
+        mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(LightNode::LightBlock));
 
         // Load coin model
         rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("MiiBody", "miiMarioBody");
@@ -235,14 +232,8 @@ void RootTask::calc_()
     rio::RenderState render_state;
     render_state.apply();
 
+    mLightNode->Draw();
     mMainModelNode->Draw(*mpViewUniformBlock, *mpLightUniformBlock);
-    rio::PrimitiveRenderer::instance()->begin();
-    {
-        rio::PrimitiveRenderer::instance()->drawSphere8x16(
-            mLightPos, 0.125f,
-            rio::Color4f{mLightColor.x, mLightColor.y, mLightColor.z, 1.0f});
-    }
-    rio::PrimitiveRenderer::instance()->end();
 
     Render();
 }
@@ -386,6 +377,7 @@ void RootTask::exit_()
     delete[] miiBufferSize;
     delete mMainBgmAudioNode;
     delete mMainModelNode;
+    delete mLightNode;
 
     FFLExit();
 

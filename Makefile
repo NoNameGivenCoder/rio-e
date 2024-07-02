@@ -86,7 +86,7 @@ FFL_SRC := $(shell find ../../FFL-Windows/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/audio/AudioNode.cpp src/helpers/model/ModelNode.cpp src/helpers/CameraController.cpp src/Model.cpp src/RootTask.cpp ../../imgui/backends/imgui_impl_glfw.cpp ../../imgui/backends/imgui_impl_opengl3.cpp ../../imgui/imgui.cpp ../../imgui/imgui_demo.cpp ../../imgui/imgui_draw.cpp ../../imgui/imgui_tables.cpp ../../imgui/imgui_widgets.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/audio/AudioNode.cpp src/helpers/model/LightNode.cpp src/helpers/model/ModelNode.cpp src/helpers/CameraController.cpp src/Model.cpp src/RootTask.cpp ../../imgui/backends/imgui_impl_glfw.cpp ../../imgui/backends/imgui_impl_opengl3.cpp ../../imgui/imgui.cpp ../../imgui/imgui_demo.cpp ../../imgui/imgui_draw.cpp ../../imgui/imgui_tables.cpp ../../imgui/imgui_widgets.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)

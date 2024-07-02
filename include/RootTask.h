@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <helpers/audio/AudioNode.h>
 #include <helpers/model/ModelNode.h>
+#include <helpers/model/LightNode.h>
 
 class Model;
 
@@ -51,8 +52,7 @@ private:
     rio::UniformBlock *mpViewUniformBlock;
     rio::UniformBlock *mpLightUniformBlock;
 
-    rio::Vector3f mLightColor;
-    rio::Vector3f mLightPos;
+    LightNode *mLightNode;
+    static LightNode::LightBlock sLightBlock;
     static ModelNode::ViewBlock sViewBlock;
-    static ModelNode::LightBlock sLightBlock;
 };
