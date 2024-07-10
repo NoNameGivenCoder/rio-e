@@ -6,7 +6,6 @@ Node::Node(const char *pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Ve
 {
     nodeKey = (char *)pNodeKey;
     transformMatrix.makeSRT(pScale, pRot, pPos);
-    // TODO: Replace this with fetching how many nodes are in a current task. Then increment by one to find the ID.
     ID = NodeMgr::instance()->GetNodeCount() + 1;
 
     RIO_LOG("[NODE] New node created with key: %s.\n", nodeKey);
