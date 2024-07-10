@@ -16,7 +16,6 @@
 #include <gpu/rio_Drawer.h>
 #include <gpu/rio_RenderState.h>
 
-#include <helpers/CameraController.h>
 #include <helpers/audio/AudioNode.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
@@ -37,10 +36,8 @@
 #include <helpers/ui/ThemeMgr.h>
 
 __attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::ViewBlock RootTask::sViewBlock;
-__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) LightNode::LightBlock RootTask::sLightBlock;
 
-RootTask::RootTask()
-    : ITask("FFL Testing"), mInitialized(false)
+RootTask::RootTask() : ITask("FFL Testing"), mInitialized(false)
 {
 }
 
@@ -133,21 +130,14 @@ void RootTask::prepare_()
     createModel_(0);
 
     FOV = 90.f;
-    mMainBgmAudioNode = new AudioNode(mCamera, 1.0f);
-    startProjectionMatrix();
+
+    mCamera = new CameraNode("mainCameraNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
+    mCamera->Init({CameraNode::CAMERA_NODE_FLYCAM, 90.f});
+    mMainBgmAudioNode = new AudioNode("mainBgmAudioNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
     {
-        // Create view uniform block instance
-        mpViewUniformBlock = new rio::UniformBlock();
-        // Set base data for view uniform block
-        mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
-
-        // Create light uniform block instance
-        mpLightUniformBlock = new rio::UniformBlock();
         // Set light uniform block data and invalidate cache now as it won't be modified
-        mLightNode = new LightNode({0.7f, 0.7f, 0.7f, 1.f}, {-8.0f, 10.0f, 20.0f}, {1, 1, 1}, LightNode::LIGHT_NODE_VISIBLE, LightNode::LIGHT_NODE_SPHERE, 0.125f);
-        sLightBlock = mLightNode->GetLightBlock();
-
-        mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(LightNode::LightBlock));
+        mLightNode = new LightNode("mainLightNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
+        mLightNode->Init({{1.f, 1.f, 1.f, 1.f}, LightNode::LIGHT_NODE_VISIBLE, LightNode::LIGHT_NODE_SPHERE, 0.5f});
 
         // Load coin model
         rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("MiiBody", "miiMarioBody");
@@ -193,60 +183,22 @@ void RootTask::calc_()
     if (!mInitialized)
         return;
 
-    rio::Controller *controller = rio::ControllerMgr::instance()->getGamepad(0);
-    // If there is no controller connected, try getting the "main" controller. (credits to abood's FFL-Testing)
-    if (!controller || !controller->isConnected())
-    {
-        controller = rio::ControllerMgr::instance()->getMainGamepad();
-        RIO_ASSERT(controller);
-    }
-
-    if (controller->isConnected())
-    {
-        controller->calc();
-        useFlyCam(&mCamera, controller);
-    }
-
-    rio::Window::instance()->clearColor(0.2f, 0.3f, 0.3f, 0.0f);
-    rio::Window::instance()->clearDepthStencil();
-
+    mCamera->Update();
     mMainBgmAudioNode->UpdateAudio(mCamera);
-
     // Get view matrix
-    rio::Matrix34f view_mtx;
-    mCamera.getMatrix(&view_mtx);
+    rio::BaseMtx34f view_mtx;
+    mCamera->mCamera.getMatrix(&view_mtx);
 
-    // Set primitive renderer camera
-    rio::PrimitiveRenderer::instance()->setCamera(mCamera);
-
-    // Calculate view-projection matrix (Projection x View)
-    rio::Matrix44f view_proj_mtx;
-    view_proj_mtx.setMul(mProjMtx, view_mtx);
-
-    // Update view uniform block
-    sViewBlock.view_pos = mCamera.pos();
-    sViewBlock.view_proj_mtx = view_proj_mtx;
-    mpViewUniformBlock->setSubDataInvalidate(&sViewBlock, 0, sizeof(ModelNode::ViewBlock));
-
-    // Restore default GPU render state
-    rio::RenderState render_state;
-    render_state.apply();
-
+    mpModel->drawOpa(view_mtx, mCamera->mProjMtx);
+    mpModel->drawXlu(view_mtx, mCamera->mProjMtx);
+    mMainModelNode->Draw();
     mLightNode->Draw();
-    mMainModelNode->Draw(*mpViewUniformBlock, *mpLightUniformBlock);
 
     Render();
 }
 
 void RootTask::Render()
 {
-    // Get view matrix
-    rio::BaseMtx34f view_mtx;
-    mCamera.getMatrix(&view_mtx);
-
-    mpModel->drawOpa(view_mtx, mProjMtx);
-    mpModel->drawXlu(view_mtx, mProjMtx);
-
     // Rendering GUI
     {
         ImGuiIO &io = *p_io;
@@ -285,19 +237,18 @@ void RootTask::Render()
 
                 if (ImGui::BeginMenu("Camera Utility"))
                 {
-                    ImGui::Text("Camera X: %f", mCamera.pos().x);
-                    ImGui::Text("Camera Y: %f", mCamera.pos().y);
-                    ImGui::Text("Camera Z: %f", mCamera.pos().z);
-                    ImGui::Text("Look At X: %f", mCamera.at().x);
-                    ImGui::Text("Look At Y: %f", mCamera.at().y);
-                    ImGui::Text("Look At Z: %f", mCamera.at().z);
+                    ImGui::Text("Camera X: %f", mCamera->GetPosition().x);
+                    ImGui::Text("Camera Y: %f", mCamera->GetPosition().y);
+                    ImGui::Text("Camera Z: %f", mCamera->GetPosition().z);
+                    ImGui::Text("Look At X: %f", mCamera->mCamera.at().x);
+                    ImGui::Text("Look At Y: %f", mCamera->mCamera.at().y);
+                    ImGui::Text("Look At Z: %f", mCamera->mCamera.at().z);
 
                     // ImGui::Text("Stick X: %f", controller->getLeftStick().x);
                     // ImGui::Text("Stick Y: %f", controller->getLeftStick().y);
 
                     if (ImGui::SliderFloat("FOV", &FOV, .5f, 100.f))
                     {
-                        // updateProjectionMatrix();
                     }
 
                     ImGui::EndMenu();
@@ -311,6 +262,12 @@ void RootTask::Render()
                         delete mpModel;
                         createModel_(rand() % FFLGetMiddleDBStoredSize(&randomMiddleDB));
                     }
+
+                    ImGui::SliderFloat("X", &mLightX, -100, 100);
+                    ImGui::SliderFloat("Y", &mLightY, -100, 100);
+                    ImGui::SliderFloat("Z", &mLightZ, -100, 100);
+
+                    mLightNode->SetPosition({mLightX, mLightY, mLightZ});
 
                     ImGui::EndMenu();
                 }
@@ -375,9 +332,6 @@ void RootTask::exit_()
     // Check if mpModel is not null before deleting it.
     delete mpModel; // FFLCharModel destruction must happen before FFLExit
     delete[] miiBufferSize;
-    delete mMainBgmAudioNode;
-    delete mMainModelNode;
-    delete mLightNode;
 
     FFLExit();
 
@@ -457,41 +411,6 @@ void RootTask::initImgui()
 #endif // RIO_IS_WIN
 }
 
-void RootTask::updateProjectionMatrix()
-{
-    // Get window instance
-    const rio::Window *const window = rio::Window::instance();
-
-    // Create perspective projection instance
-    rio::PerspectiveProjection proj(
-        0.1f,
-        100.0f,
-        rio::Mathf::deg2rad(FOV),
-        f32(window->getWidth()) / f32(window->getHeight()));
-
-    // Calculate matrix
-    rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));
-}
-
-void RootTask::startProjectionMatrix()
-{
-    // Get window instance
-    const rio::Window *const window = rio::Window::instance();
-
-    // Create perspective projection instance
-    rio::PerspectiveProjection proj(
-        0.1f,
-        100.0f,
-        rio::Mathf::deg2rad(FOV),
-        f32(window->getWidth()) / f32(window->getHeight()));
-
-    // Calculate matrix
-    rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));
-
-    // Set primitive renderer projection
-    rio::PrimitiveRenderer::instance()->setProjection(proj);
-}
-
 #if RIO_IS_WIN
 
 void RootTask::resize_(s32 width, s32 height)
@@ -501,8 +420,6 @@ void RootTask::resize_(s32 width, s32 height)
     // Setup display sizes and scales
     io.DisplaySize.x = (float)width;  // set the current display width
     io.DisplaySize.y = (float)height; // set the current display height here
-
-    updateProjectionMatrix();
 }
 
 void RootTask::onResizeCallback_(s32 width, s32 height)

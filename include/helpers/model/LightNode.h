@@ -4,8 +4,10 @@
 #include <rio.h>
 #include <math/rio_Vector.h>
 #include <gfx/rio_Color.h>
+#include <helpers/common/Node.h>
+#include <gfx/mdl/rio_Model.h>
 
-class LightNode
+class LightNode : public Node
 {
 public:
     struct LightBlock
@@ -30,21 +32,36 @@ public:
         LIGHT_NODE_SPHERE = 1
     };
 
-    LightNode(rio::Color4f pLightColor, rio::Vector3f pLightPos = {0, 0, 0}, rio::Vector3f pLightScale = {1, 1, 1}, LightViewType pLightView = LIGHT_NODE_INVISIBLE, LightPrimitiveType pLightPrimitive = LIGHT_NODE_SPHERE, f32 pSphereRadius = 1.f);
+    struct LightNodeInitArgs
+    {
+        rio::Color4f LightColor = {1.f, 1.f, 1.f, 1.f};
+        LightViewType LightView = LIGHT_NODE_INVISIBLE;
+        LightPrimitiveType LightPrimitive = LIGHT_NODE_SPHERE;
+        f32 LightSphereRadius = 1.f;
+    };
+
+    LightBlock mLightBlock;
+    rio::UniformBlock mUniformBlock;
+
+    using Node::Node;
+    void Init(LightNodeInitArgs args);
+
     void Draw();
 
     LightBlock GetLightBlock() { return mLightBlock; };
+    rio::Color4f GetLightColor() { return mLightColor; };
 
-    void SetScale(rio::Vector3f pScale) { mLightScale = pScale; };
-    void SetPos(rio::Vector3f pPos) { mLightBlock.light_pos = pPos; };
-    void SetRadius(f32 pRadius) { mSphereRadius = pRadius; };
+    void SetLightRadius(f32 pRadius) { mLightSphereRadius = pRadius; };
+    void SetLightColor(rio::Color4f pLightColor) { mLightColor = pLightColor; };
+    void SetLightViewType(LightViewType pLightView) { mLightViewType = pLightView; };
+    void SetLightPrimitive(LightPrimitiveType pLightPrimitive) { mLightPrimitiveType = pLightPrimitive; };
 
 private:
-    LightViewType mViewType;
-    LightPrimitiveType mPrimitiveType;
-    LightBlock mLightBlock;
-    rio::Vector3f mLightScale;
-    f32 mSphereRadius;
+    bool mInitialized = false;
+    LightViewType mLightViewType = LIGHT_NODE_INVISIBLE;
+    LightPrimitiveType mLightPrimitiveType = LIGHT_NODE_SPHERE;
+    f32 mLightSphereRadius = 1.f;
+    rio::Color4f mLightColor = {1.f, 1.f, 1.f, 1.f};
 };
 
 #endif // LIGHTHELPER_H

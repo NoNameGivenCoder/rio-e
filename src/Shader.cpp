@@ -3,6 +3,7 @@
 #include <gpu/rio_RenderState.h>
 #include <math/rio_Matrix.h>
 #include <misc/rio_MemUtil.h>
+#include <helpers/common/NodeMgr.h>
 
 #if RIO_IS_CAFE
 #include <gx2/registers.h>
@@ -219,7 +220,7 @@ namespace
     const FFLColor cLightDiffuse = {0.60f, 0.60f, 0.60f, 1.0f};
     const FFLColor cLightSpecular = {0.70f, 0.70f, 0.70f, 1.0f};
 
-    const rio::BaseVec3f cLightDir = {-0.4531539381f, 0.4226179123f, 0.7848858833f};
+    rio::BaseVec3f cLightDir = {-0.4531539381f, 0.4226179123f, 0.7848858833f};
 
     const FFLColor cRimColor = {0.3f, 0.3f, 0.3f, 1.0f};
     const f32 cRimPower = 2.0f;

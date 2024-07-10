@@ -1,11 +1,35 @@
 #include <gpu/rio_Drawer.h>
 #include <misc/rio_MemUtil.h>
+
 #include <helpers/model/ModelNode.h>
+#include <helpers/common/NodeMgr.h>
+
+#include <helpers/model/LightNode.h>
+#include <helpers/common/CameraNode.h>
+
+#include <vector>
+#include <memory>
+
+__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::ViewBlock ModelNode::sViewBlock;
+__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::LightBlock ModelNode::sLightBlock;
 
 ModelNode::ModelNode(rio::mdl::res::Model *res_mdl, const char *view_block_name, const char *light_block_name, const char *model_block_name)
     : rio::mdl::Model(res_mdl)
 {
     u32 num_meshes = numMeshes();
+
+    // Create view uniform block instance
+    mpViewUniformBlock = new rio::UniformBlock();
+    mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
+
+    LightNode *mLight = NodeMgr::instance()->GetNodesByType<LightNode>().at(0);
+
+    rio::Color4f lightColor = mLight->GetLightColor();
+    sLightBlock.light_color = {lightColor.r, lightColor.g, lightColor.b};
+    sLightBlock.light_pos = mLight->GetPosition();
+
+    mpLightUniformBlock = new rio::UniformBlock();
+    mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(ModelNode::LightBlock));
 
     mModelUniformBlock = (rio::UniformBlock *)rio::MemUtil::alloc(num_meshes * sizeof(rio::UniformBlock), 4);
     mModelBlock = (ModelBlock *)rio::MemUtil::alloc(num_meshes * sizeof(ModelBlock), rio::Drawer::cUniformBlockAlignment);
@@ -53,10 +77,38 @@ ModelNode::~ModelNode()
         mModelUniformBlock[i].~UniformBlock();
 
     rio::MemUtil::free(mModelUniformBlock);
+
+    delete mpViewUniformBlock;
 }
 
-void ModelNode::Draw(rio::UniformBlock &view_uniform_block, rio::UniformBlock &light_uniform_block) const
+void ModelNode::Draw() const
 {
+    CameraNode *mCamera = NodeMgr::instance()->GetNodesByType<CameraNode>().at(0);
+
+    if (!mCamera)
+        return;
+
+    rio::Matrix34f view_mtx;
+    mCamera->mCamera.getMatrix(&view_mtx);
+
+    // Calculate view-projection matrix (Projection x View)
+    rio::Matrix44f view_proj_mtx;
+    view_proj_mtx.setMul(mCamera->mProjMtx, view_mtx);
+
+    sViewBlock.view_pos = mCamera->GetPosition();
+    sViewBlock.view_proj_mtx = view_proj_mtx;
+
+    rio::RenderState render_state;
+    render_state.apply();
+
+    LightNode *mLight = NodeMgr::instance()->GetNodesByType<LightNode>().at(0);
+
+    sLightBlock.light_color = {mLight->GetLightColor().r, mLight->GetLightColor().g, mLight->GetLightColor().b};
+    sLightBlock.light_pos = mLight->GetPosition();
+
+    mpViewUniformBlock->setSubDataInvalidate(&sViewBlock, 0, sizeof(ModelNode::ViewBlock));
+    mpLightUniformBlock->setSubDataInvalidate(&sLightBlock, 0, sizeof(ModelNode::LightBlock));
+
     const rio::mdl::Mesh *const meshes = this->meshes();
 
     // Render each mesh in order
@@ -78,27 +130,25 @@ void ModelNode::Draw(rio::UniformBlock &view_uniform_block, rio::UniformBlock &l
         const UniformBlocks &uniform_block_idx = mUniformBlocks[i];
 
         // Set the ViewBlock index and stage
-        view_uniform_block.setIndex(uniform_block_idx.view_block_idx.vs, uniform_block_idx.view_block_idx.fs);
-        view_uniform_block.setStage(uniform_block_idx.view_block_idx.stage);
-
-        // Bind the ViewBlock uniform
-        view_uniform_block.bind();
-
-        // Set the LightBlock index and stage
-        light_uniform_block.setIndex(uniform_block_idx.light_block_idx.vs, uniform_block_idx.light_block_idx.fs);
-        light_uniform_block.setStage(uniform_block_idx.light_block_idx.stage);
-
-        // Bind the LightBlock uniform
-        light_uniform_block.bind();
+        mpViewUniformBlock->setIndex(uniform_block_idx.view_block_idx.vs, uniform_block_idx.view_block_idx.fs);
+        mpViewUniformBlock->setStage(uniform_block_idx.view_block_idx.stage);
+        mpViewUniformBlock->bind();
 
         // Get mesh world matrix
         mModelBlock[i].model_mtx = mesh.worldMtx();
         mModelBlock[i].normal_mtx.setInverseTranspose(mModelBlock[i].model_mtx);
 
+        // Set the LightBlock index and stage
+        mpLightUniformBlock->setIndex(uniform_block_idx.light_block_idx.vs, uniform_block_idx.light_block_idx.fs);
+        mpLightUniformBlock->setStage(uniform_block_idx.light_block_idx.stage);
+        mpLightUniformBlock->bind();
+
         // Update the ModelBlock uniform
         mModelUniformBlock[i].setSubDataInvalidate(&mModelBlock[i], 0, 2 * sizeof(rio::Matrix34f));
         // Bind the ModelBlock uniform
         mModelUniformBlock[i].bind();
+
+        const rio::Shader *shader = material.shader();
 
         // Draw
         mesh.draw();

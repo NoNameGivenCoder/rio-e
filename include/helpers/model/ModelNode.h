@@ -2,6 +2,7 @@
 #define MODELHELPER_H
 
 #include <gfx/mdl/rio_Model.h>
+#include <vector>
 
 class ModelNode : public rio::mdl::Model
 {
@@ -32,7 +33,9 @@ public:
     ModelNode(rio::mdl::res::Model *res_mdl, const char *view_block_name, const char *light_block_name, const char *model_block_name);
     ~ModelNode();
 
-    void Draw(rio::UniformBlock &view_uniform_block, rio::UniformBlock &light_uniform_block) const;
+    void Draw() const;
+    static ViewBlock sViewBlock;
+    static LightBlock sLightBlock;
 
 private:
     struct ShaderLocation
@@ -86,6 +89,8 @@ private:
     rio::UniformBlock *mModelUniformBlock;
     ModelBlock *mModelBlock;
     UniformBlocks *mUniformBlocks;
+    rio::UniformBlock *mpViewUniformBlock;
+    rio::UniformBlock *mpLightUniformBlock;
 };
 
 #endif // AUDIOHELPER_H

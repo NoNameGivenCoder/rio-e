@@ -6,9 +6,11 @@
 #include <nn/ffl/FFLMiddleDB.h>
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
+
 #include <helpers/audio/AudioNode.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
+#include <helpers/common/CameraNode.h>
 
 class Model;
 
@@ -23,10 +25,8 @@ private:
     void exit_() override;
 
     void createModel_(u16 index);
-    void updateProjectionMatrix();
     void initImgui();
     void Render();
-    void startProjectionMatrix();
 
 #if RIO_IS_WIN
     void resize_(s32 width, s32 height);
@@ -37,8 +37,6 @@ private:
     bool mInitialized;
     FFLResourceDesc mResourceDesc;
     Shader mShader;
-    rio::Matrix44f mProjMtx;
-    rio::LookAtCamera mCamera;
     float FOV;
     Model *mpModel;
     FFLMiddleDB randomMiddleDB;
@@ -46,6 +44,11 @@ private:
     ImGuiIO *p_io;
     AudioNode *mMainBgmAudioNode;
     ModelNode *mMainModelNode;
+    CameraNode *mCamera;
+
+    f32 mLightX;
+    f32 mLightY;
+    f32 mLightZ;
 
     bool isDebuggingOpen;
 

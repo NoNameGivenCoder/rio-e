@@ -5,42 +5,51 @@
 #include <gfx/rio_Color.h>
 #include <gfx/rio_PrimitiveRenderer.h>
 
-LightNode::LightNode(rio::Color4f pLightColor, rio::Vector3f pLightPos, rio::Vector3f pLightScale, LightViewType pLightView, LightPrimitiveType pLightPrimitive, f32 pSphereRadius)
+void LightNode::Init(LightNodeInitArgs args)
 {
-    mLightBlock.light_color = pLightColor;
-    mLightBlock.light_pos = pLightPos;
+    //__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) LightNode::LightBlock mLightBlock;
 
-    mViewType = pLightView;
-    mPrimitiveType = pLightPrimitive;
-    mLightScale = pLightScale;
+    if (mInitialized)
+    {
+        RIO_LOG("[LIGHTNODE] %s already initialized.\n", Node::nodeKey);
+        return;
+    }
 
-    if (mPrimitiveType == LIGHT_NODE_SPHERE)
-        mSphereRadius = pSphereRadius;
+    mLightViewType = args.LightView;
+    mLightPrimitiveType = args.LightPrimitive;
+    mLightSphereRadius = args.LightSphereRadius;
+    mLightColor = args.LightColor;
 
-    RIO_LOG("New LightNode created.\n");
+    mLightBlock.light_pos = Node::GetPosition();
+    mLightBlock.light_color = args.LightColor;
+
+    mInitialized = true;
+    RIO_LOG("[LIGHTNODE] %s initialized.\n", Node::nodeKey);
 }
 
 void LightNode::Draw()
 {
-    if (mViewType != LIGHT_NODE_VISIBLE)
+    mLightBlock.light_pos = Node::GetPosition();
+
+    if (mLightViewType != LIGHT_NODE_VISIBLE)
         return;
 
     rio::PrimitiveRenderer::instance()->begin();
-    switch (mViewType)
+    switch (mLightViewType)
     {
     case 0:
     {
         rio::PrimitiveRenderer::CubeArg cubeArg;
-        cubeArg.setCenter(mLightBlock.light_pos);
+        cubeArg.setCenter(Node::GetPosition());
         cubeArg.setColor(mLightBlock.light_color);
-        cubeArg.setSize(mLightScale);
-        cubeArg.setCornerAndSize(mLightBlock.light_pos, mLightScale);
+        cubeArg.setSize(Node::GetScale());
+        cubeArg.setCornerAndSize(Node::GetPosition(), Node::GetScale());
 
         rio::PrimitiveRenderer::instance()->drawCube(cubeArg);
         break;
     }
     case 1:
-        rio::PrimitiveRenderer::instance()->drawSphere8x16(mLightBlock.light_pos, mSphereRadius, mLightBlock.light_color);
+        rio::PrimitiveRenderer::instance()->drawSphere8x16(Node::GetPosition(), mLightSphereRadius, mLightColor);
         break;
     }
     rio::PrimitiveRenderer::instance()->end();

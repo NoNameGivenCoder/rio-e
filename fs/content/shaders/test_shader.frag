@@ -27,7 +27,7 @@ void main()
     vec4 texColor = texture(texture1, TexCoord);
 
     // ambient
-    float ambientStrength = 0.6f;
+    float ambientStrength = 0.4f;
     vec3 ambient = ambientStrength * lightColor;
 
     // diffuse
@@ -36,7 +36,7 @@ void main()
     vec3 diffuse = diff * lightColor;
 
     // specular
-    float specularStrength = 0.1f;
+    float specularStrength = 5.f;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, Normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 32);
