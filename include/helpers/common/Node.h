@@ -20,6 +20,8 @@ public:
     void SetScale(rio::Vector3f pScale) { transformMatrix.makeS(pScale); };
     void SetPosition(rio::Vector3f pPos) { transformMatrix.makeT(pPos); };
     void SetRotation(rio::Vector3f pRot) { transformMatrix.makeR(pRot); };
+
+    bool isEditorSelected = false;
 };
 
 #endif // COMMONHELPER_H

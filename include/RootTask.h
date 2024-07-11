@@ -35,12 +35,9 @@ private:
 
 private:
     bool mInitialized;
-    FFLResourceDesc mResourceDesc;
     Shader mShader;
     float FOV;
     Model *mpModel;
-    FFLMiddleDB randomMiddleDB;
-    void *miiBufferSize;
     ImGuiIO *p_io;
     AudioNode *mMainBgmAudioNode;
     ModelNode *mMainModelNode;

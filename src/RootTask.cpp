@@ -20,6 +20,11 @@
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
 
+#include <helpers/ui/editor/menu/MainMenuBar.h>
+#include <helpers/common/NodeMgr.h>
+#include <helpers/common/FFLMgr.h>
+#include <filesystem>
+
 #if RIO_IS_CAFE
 #include <controller/rio_ControllerMgr.h>
 #include <controller/cafe/rio_CafeVPadDeviceCafe.h>
@@ -48,84 +53,10 @@ void RootTask::prepare_()
 
     mInitialized = false;
 
-    FFLInitDesc init_desc;
-    init_desc.fontRegion = FFL_FONT_REGION_0;
-    init_desc._c = false;
-    init_desc._10 = true;
-
-#if RIO_IS_CAFE
-    FSInit();
-#endif // RIO_IS_CAFE
-
-    {
-        std::string resPath;
-        resPath.resize(256);
-        // Middle
-        {
-            FFLGetResourcePath(resPath.data(), 256, FFL_RESOURCE_TYPE_MIDDLE, false);
-            {
-                rio::FileDevice::LoadArg arg;
-                arg.path = resPath;
-                arg.alignment = 0x2000;
-
-                u8 *buffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->tryLoad(arg);
-                if (buffer == nullptr)
-                {
-                    RIO_LOG("NativeFileDevice failed to load: %s\n", resPath.c_str());
-                    RIO_ASSERT(false);
-                    return;
-                }
-
-                mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE] = buffer;
-                mResourceDesc.size[FFL_RESOURCE_TYPE_MIDDLE] = arg.read_size;
-            }
-        }
-        // High
-        {
-            FFLGetResourcePath(resPath.data(), 256, FFL_RESOURCE_TYPE_HIGH, false);
-            {
-                rio::FileDevice::LoadArg arg;
-                arg.path = resPath;
-                arg.alignment = 0x2000;
-
-                u8 *buffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->tryLoad(arg);
-                if (buffer == nullptr)
-                {
-                    RIO_LOG("NativeFileDevice failed to load: %s\n", resPath.c_str());
-                    RIO_ASSERT(false);
-                    return;
-                }
-
-                mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH] = buffer;
-                mResourceDesc.size[FFL_RESOURCE_TYPE_HIGH] = arg.read_size;
-            }
-        }
-    }
-
-    FFLResult result = FFLInitResEx(&init_desc, &mResourceDesc);
-    if (result != FFL_RESULT_OK)
-    {
-        RIO_LOG("FFLInitResEx() failed with result: %d\n", (s32)result);
-        RIO_ASSERT(false);
-        return;
-    }
-
-    FFLiEnableSpecialMii(333326543);
-
-    RIO_ASSERT(FFLIsAvailable());
-
-    FFLInitResGPUStep();
+    FFLMgr::instance()->InitializeFFL();
+    FFLMgr::instance()->CreateRandomMiddleDB(100);
 
     mShader.initialize();
-
-    // Initializing random mii DB.
-    {
-        miiBufferSize = new u8[FFLGetMiddleDBBufferSize(100)];
-        RIO_LOG("Created mii buffer size \n");
-        FFLInitMiddleDB(&randomMiddleDB, FFL_MIDDLE_DB_TYPE_RANDOM_PARAM, miiBufferSize, 100);
-        FFLUpdateMiddleDB(&randomMiddleDB);
-        RIO_LOG("Init'd middle DB \n");
-    }
 
     createModel_(0);
 
@@ -157,7 +88,6 @@ void RootTask::prepare_()
     }
 
     mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
-    isDebuggingOpen = false;
     mInitialized = true;
 }
 
@@ -170,7 +100,7 @@ void RootTask::createModel_(u16 index)
             .modelFlag = 1 << 0 | 1 << 1 | 1 << 2,
             .resourceType = FFL_RESOURCE_TYPE_HIGH,
         },
-        .data = &randomMiddleDB,
+        .data = &FFLMgr::instance()->mMiddleDB,
         .index = index};
 
     mpModel = new Model();
@@ -203,103 +133,131 @@ void RootTask::Render()
     {
         ImGuiIO &io = *p_io;
 
-#if RIO_IS_CAFE
-        ImGui_ImplWiiU_ControllerInput input;
-
-        getCafeVPADDevice(&input);
-        getCafeKPADDevice(&input);
-        ImGui_ImplWiiU_ProcessInput(&input);
-
-        ImGui_ImplGX2_NewFrame();
-#else
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-#endif // RIO_IS_CAFE
+
         ImGui::NewFrame();
         {
             if (ImGui::BeginMainMenuBar())
             {
                 if (ImGui::BeginMenu("File"))
                 {
-                    if (ImGui::MenuItem("Save Mii..", "Ctrl+S"))
-                    {
-                        FFLStoreData store_data;
-                        FFLiGetStoreData(&store_data, FFL_DATA_SOURCE_MIDDLE_DB, 52);
-                        rio::FileDevice *fileDevice = rio::FileDeviceMgr::instance()->getMainFileDevice();
-                        rio::FileHandle fileHandle;
-                        fileDevice->open(&fileHandle, "TestMii.ffsd", rio::FileDevice::FILE_OPEN_FLAG_CREATE);
-                        fileDevice->write(&fileHandle, store_data.data, sizeof(store_data.data));
-                        fileDevice->close(&fileHandle);
-                    }
-
+                    ImGui::MenuItem("Create New Scene");
+                    ImGui::MenuItem("Save Scene", "Ctrl+S");
+                    ImGui::MenuItem("Open Scene", "Ctrl+O");
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu("Camera Utility"))
+                if (ImGui::BeginMenu("Edit"))
                 {
-                    ImGui::Text("Camera X: %f", mCamera->GetPosition().x);
-                    ImGui::Text("Camera Y: %f", mCamera->GetPosition().y);
-                    ImGui::Text("Camera Z: %f", mCamera->GetPosition().z);
-                    ImGui::Text("Look At X: %f", mCamera->mCamera.at().x);
-                    ImGui::Text("Look At Y: %f", mCamera->mCamera.at().y);
-                    ImGui::Text("Look At Z: %f", mCamera->mCamera.at().z);
-
-                    // ImGui::Text("Stick X: %f", controller->getLeftStick().x);
-                    // ImGui::Text("Stick Y: %f", controller->getLeftStick().y);
-
-                    if (ImGui::SliderFloat("FOV", &FOV, .5f, 100.f))
-                    {
-                    }
-
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Mii Utility"))
-                {
-                    ImGui::Text("Random Mii Database Size: %d", FFLGetMiddleDBStoredSize(&randomMiddleDB));
-                    if (ImGui::Button("Select Random Mii"))
-                    {
-                        delete mpModel;
-                        createModel_(rand() % FFLGetMiddleDBStoredSize(&randomMiddleDB));
-                    }
-
-                    ImGui::SliderFloat("X", &mLightX, -100, 100);
-                    ImGui::SliderFloat("Y", &mLightY, -100, 100);
-                    ImGui::SliderFloat("Z", &mLightZ, -100, 100);
-
-                    mLightNode->SetPosition({mLightX, mLightY, mLightZ});
-
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Debug"))
-                {
-                    isDebuggingOpen = true;
-
-                    ImGui::ShowDebugLogWindow(&isDebuggingOpen);
-
                     ImGui::EndMenu();
                 }
 
                 ImGui::EndMainMenuBar();
             }
 
+            ImVec2 layoutPos = ImVec2(0, 23.f);
+            ImVec2 layoutSize = ImVec2(300.0f, io.DisplaySize.y - layoutPos.y);
+
+            ImGui::SetNextWindowPos(layoutPos);
+            ImGui::SetNextWindowSize(layoutSize);
+
+            if (ImGui::Begin("Layout", __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+            {
+                if (ImGui::BeginChild("nodes", ImGui::GetContentRegionAvail(), ImGuiChildFlags_AutoResizeY))
+                {
+                    for (const auto &node : NodeMgr::instance()->mNodes)
+                    {
+                        if (!node || !node->nodeKey)
+                            continue;
+
+                        bool isNodeSelected = (NodeMgr::instance()->GetSelectedNode() == node.get());
+
+                        if (isNodeSelected)
+                            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+
+                        if (ImGui::Button(node.get()->nodeKey, ImVec2(ImGui::GetItemRectSize().x, 25)))
+                            NodeMgr::instance()->SetSelectedNode(node.get());
+
+                        if (isNodeSelected)
+                            ImGui::PopStyleColor();
+                    }
+
+                    ImGui::EndChild();
+                }
+
+                ImGui::End();
+            }
+
+            ImVec2 propertiesSize = ImVec2(300.0f, io.DisplaySize.y - layoutPos.y);
+            ImVec2 propertiesPosition = ImVec2(io.DisplaySize.x - propertiesSize.x, layoutPos.y);
+
+            ImGui::SetNextWindowPos(propertiesPosition);
+            ImGui::SetNextWindowSize(propertiesSize);
+
+            if (ImGui::Begin("Properties", __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+            {
+                if (ImGui::BeginChild("nodes", ImGui::GetContentRegionAvail(), ImGuiChildFlags_AutoResizeY))
+                {
+                    if (NodeMgr::instance()->GetSelectedNode())
+                    {
+                        ImGui::Text("Selected node: %s", NodeMgr::instance()->GetSelectedNode()->nodeKey);
+                    }
+                }
+
+                ImGui::End();
+            }
+
+            ImVec2 assetsSize = ImVec2(io.DisplaySize.x - layoutSize.x - propertiesSize.x, 340.0f); // Adjust the height as needed
+            ImVec2 assetsPos = ImVec2(layoutSize.x, io.DisplaySize.y - assetsSize.y - ImGui::GetStyle().WindowPadding.y - ImGui::GetStyle().FramePadding.y - 10);
+
+            ImGui::SetNextWindowPos(assetsPos);
+            ImGui::SetNextWindowSize(assetsSize);
+
+            if (ImGui::Begin("Assets", __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+            {
+                if (ImGui::BeginChild("folders", {200, ImGui::GetContentRegionAvail().y}, ImGuiChildFlags_AutoResizeY))
+                {
+                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath()))
+                    {
+                        if (!entry.is_directory())
+                            continue;
+
+                        std::string pathName = entry.path().filename().string();
+                        pathName.append("/");
+
+                        if (ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
+                        {
+                            // Button clicked logic
+                        }
+                    }
+
+                    ImGui::EndChild();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::BeginChild("contents", ImGui::GetContentRegionAvail()))
+                {
+                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath()))
+                    {
+                        std::string pathName = entry.path().filename().string();
+
+                        if (entry.is_directory())
+                            pathName.append("/");
+
+                        ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25));
+                    }
+
+                    ImGui::EndChild();
+                }
+            }
+
             ImGui::End();
         }
         ImGui::Render();
 
-#if RIO_IS_CAFE
-        ImGui_ImplGX2_RenderDrawData(ImGui::GetDrawData());
-#else
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif // RIO_IS_CAFE
-
-#if RIO_IS_CAFE
-        // Render keyboard overlay
-        rio::Graphics::setViewport(0, 0, io.DisplaySize.x, io.DisplaySize.y, 0.0f, 1.0f);
-        rio::Graphics::setScissor(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-        ImGui_ImplWiiU_DrawKeyboardOverlay();
-#else
         // Update and Render additional Platform Windows
         // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
         //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
@@ -310,7 +268,6 @@ void RootTask::Render()
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);
         }
-#endif // RIO_IS_CAFE
     }
 }
 
@@ -328,24 +285,11 @@ void RootTask::exit_()
     ImGui_ImplGlfw_Shutdown();
 #endif // RIO_IS_CAFE
     ImGui::DestroyContext();
+    ThemeMgr::destroySingleton();
 
     // Check if mpModel is not null before deleting it.
     delete mpModel; // FFLCharModel destruction must happen before FFLExit
-    delete[] miiBufferSize;
-
-    FFLExit();
-
-    // Free the resources and set pointers to nullptr.
-    if (mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH])
-    {
-        rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH]);
-        mResourceDesc.pData[FFL_RESOURCE_TYPE_HIGH] = nullptr;
-    }
-    if (mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE])
-    {
-        rio::MemUtil::free(mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE]);
-        mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE] = nullptr;
-    }
+    // delete[] miiBufferSize;
 
     mInitialized = false;
 }
@@ -355,14 +299,15 @@ void RootTask::initImgui()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ThemeMgr::createSingleton();
     ImGuiIO &io = ImGui::GetIO();
     p_io = &io;
-    io.Fonts->AddFontFromFileTTF("NotoSans-Regular.ttf", 20);
+    io.Fonts->AddFontFromFileTTF("./fs/content/font/editor_main.ttf", 18);
 #if RIO_IS_CAFE
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 #else
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 #endif                                                // RIO_IS_CAFE
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
     // io.ConfigViewportsNoAutoMerge = true;
@@ -374,6 +319,7 @@ void RootTask::initImgui()
 
 #if !RIO_IS_CAFE
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ThemeMgr::instance()->applyTheme(ThemeMgr::instance()->sDefaultTheme);
     ImGuiStyle &style = ImGui::GetStyle();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {

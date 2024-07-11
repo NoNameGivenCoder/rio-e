@@ -1,6 +1,7 @@
 #include <RootTask.h>
 #include <rio.h>
 #include <helpers/common/NodeMgr.h>
+#include <helpers/common/FFLMgr.h>
 
 static const rio::InitializeArg cInitializeArg = {
     .window = {
@@ -19,11 +20,13 @@ int main(int argc, char *argv[])
 
     // Main loop
     NodeMgr::createSingleton();
+    FFLMgr::createSingleton();
     rio::EnterMainLoop();
 
-    // Exit RIO
     NodeMgr::destorySingleton();
+    // Exit RIO
     rio::Exit();
+    FFLMgr::destorySingleton();
 
     return 0;
 }

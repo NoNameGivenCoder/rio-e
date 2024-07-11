@@ -83,8 +83,8 @@ void ThemeMgr::loadThemes_()
     colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.77f, 0.98f, 1.00f);
     colors[ImGuiCol_SliderGrab] = ImVec4(0.24f, 0.69f, 0.88f, 1.00f);
     colors[ImGuiCol_SliderGrabActive] = ImVec4(0.26f, 0.77f, 0.98f, 1.00f);
-    colors[ImGuiCol_Button] = ImVec4(0.26f, 0.77f, 0.98f, 0.40f);
-    colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.77f, 0.98f, 1.00f);
+    colors[ImGuiCol_Button] = ImVec4(0.0f, 0.0f, 0.0f, 0.f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.77f, 0.98f, 0.5f);
     colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.71f, 0.98f, 1.00f);
     colors[ImGuiCol_Header] = ImVec4(0.26f, 0.77f, 0.98f, 0.31f);
     colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.77f, 0.98f, 0.80f);
@@ -118,13 +118,14 @@ void ThemeMgr::loadThemes_()
     colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
-    default_theme.ChildRounding = 4.0f;
-    default_theme.FrameRounding = 4.0f;
+    default_theme.ChildRounding = 0.1f;
+    default_theme.FrameRounding = 0.1f;
     default_theme.GrabRounding = 4.0f;
     default_theme.PopupRounding = 4.0f;
-    default_theme.ScrollbarRounding = 4.0f;
+    default_theme.ScrollbarRounding = 2.0f;
     default_theme.TabRounding = 4.0f;
-    default_theme.WindowRounding = 4.0f;
+    default_theme.WindowRounding = 1.0f;
+    default_theme.ButtonTextAlign = {0, 0.5f};
 
     mThemes[sDefaultTheme] = default_theme;
 
@@ -194,6 +195,8 @@ void ThemeMgr::loadThemes_()
     light_theme.ScrollbarRounding = 4.0f;
     light_theme.TabRounding = 4.0f;
     light_theme.WindowRounding = 4.0f;
+    light_theme.WindowPadding = {0, 0};
+    light_theme.ButtonTextAlign = {0, 0.5f};
 
     mThemes["Light Blue"] = light_theme;
 }

@@ -16,6 +16,8 @@ public:
     static int AddNode(Node *pNode);
     static bool DeleteNode(const int pIndex);
 
+    std::vector<std::unique_ptr<Node>> mNodes;
+
     static inline NodeMgr *instance() { return mInstance; };
     static inline int GetNodeCount() { return mInstance ? mInstance->mNodes.size() : 0; };
     static inline void ClearAllNodes() { return mInstance->mNodes.clear(); };
@@ -41,10 +43,13 @@ public:
         return result;
     }
 
+    // Editor functions. Do NOT use.
+    inline Node *GetSelectedNode() { return mSelectedNode; };
+    inline void SetSelectedNode(Node *pNode) { mSelectedNode = pNode; };
+
 private:
     static NodeMgr *mInstance;
-
-    std::vector<std::unique_ptr<Node>> mNodes;
+    Node *mSelectedNode = nullptr;
 
     bool mInitialized = false;
 };
