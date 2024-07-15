@@ -2,7 +2,7 @@
 # Prepend toolchain prefix that you can choose
 CXX := $(TOOLCHAIN_PREFIX)g++
 
-INCLUDES := -I../../ninTexUtils/include -I../../rio/include -I../../FFL-Windows/include -I../../imgui/backends -I../../imgui -Iinclude -Iincludes/helpers -IC:\msys64\mingw64\include $(INCLUDES)
+INCLUDES := -I../ninTexUtils/include -I../rio/include -I../FFL-Windows/include -I../imgui/backends -I../imgui -Iinclude -Iincludes/helpers -I/usr/lib/gcc/x86_64-linux-gnu/12/include $(INCLUDES)
 
 # --- Definitions
 
@@ -80,13 +80,13 @@ CXXFLAGS := -g -std=c++17 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(
 
 # Source directories
 # glob all files in here for now
-NINTEXUTILS_SRC := $(shell find ../../ninTexUtils/src/ninTexUtils -name '*.c' -o -name '*.cpp')
-RIO_SRC := $(shell find ../../rio/src -name '*.c' -o -name '*.cpp')
-FFL_SRC := $(shell find ../../FFL-Windows/src -name '*.c' -o -name '*.cpp')
+NINTEXUTILS_SRC := $(shell find ../ninTexUtils/src/ninTexUtils -name '*.c' -o -name '*.cpp')
+RIO_SRC := $(shell find ../rio/src -name '*.c' -o -name '*.cpp')
+FFL_SRC := $(shell find ../FFL-Windows/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/common/CameraNode.cpp src/helpers/common/NodeMgr.cpp src/helpers/audio/AudioNode.cpp src/helpers/model/LightNode.cpp src/helpers/model/ModelNode.cpp src/Model.cpp src/RootTask.cpp ../../imgui/backends/imgui_impl_glfw.cpp ../../imgui/backends/imgui_impl_opengl3.cpp ../../imgui/imgui.cpp ../../imgui/imgui_demo.cpp ../../imgui/imgui_draw.cpp ../../imgui/imgui_tables.cpp ../../imgui/imgui_widgets.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/common/CameraNode.cpp src/helpers/common/NodeMgr.cpp src/helpers/audio/AudioNode.cpp src/helpers/model/LightNode.cpp src/helpers/model/ModelNode.cpp src/Model.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)

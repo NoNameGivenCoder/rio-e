@@ -7,6 +7,8 @@
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
 
+#include <filedevice/rio_FileDeviceMgr.h>
+
 #include <helpers/audio/AudioNode.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
@@ -39,20 +41,11 @@ private:
     float FOV;
     Model *mpModel;
     ImGuiIO *p_io;
+
     AudioNode *mMainBgmAudioNode;
     ModelNode *mMainModelNode;
+    LightNode *mLightNode;
     CameraNode *mCamera;
 
-    f32 mLightX;
-    f32 mLightY;
-    f32 mLightZ;
-
     bool isDebuggingOpen;
-
-    rio::UniformBlock *mpViewUniformBlock;
-    rio::UniformBlock *mpLightUniformBlock;
-
-    LightNode *mLightNode;
-    static LightNode::LightBlock sLightBlock;
-    static ModelNode::ViewBlock sViewBlock;
 };

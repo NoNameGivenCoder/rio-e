@@ -43,13 +43,8 @@ public:
         return result;
     }
 
-    // Editor functions. Do NOT use.
-    inline Node *GetSelectedNode() { return mSelectedNode; };
-    inline void SetSelectedNode(Node *pNode) { mSelectedNode = pNode; };
-
 private:
     static NodeMgr *mInstance;
-    Node *mSelectedNode = nullptr;
 
     bool mInitialized = false;
 };

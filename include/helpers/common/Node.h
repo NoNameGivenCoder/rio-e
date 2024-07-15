@@ -16,8 +16,9 @@ public:
 
     rio::Vector3f GetScale();
     rio::Vector3f GetPosition();
+    rio::Vector3f GetRotation();
 
-    void SetScale(rio::Vector3f pScale) { transformMatrix.makeS(pScale); };
+    void SetScale(rio::Vector3f pScale) { transformMatrix.applyScaleLocal(pScale); };
     void SetPosition(rio::Vector3f pPos) { transformMatrix.makeT(pPos); };
     void SetRotation(rio::Vector3f pRot) { transformMatrix.makeR(pRot); };
 

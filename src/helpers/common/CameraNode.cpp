@@ -89,10 +89,6 @@ void CameraNode::Update()
     case CAMERA_NODE_FLYCAM:
         useFlyCam(this, &mCamera);
         break;
-
-    default:
-        useFlyCam(this, &mCamera);
-        break;
     }
 
     // Get window instance

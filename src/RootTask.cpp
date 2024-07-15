@@ -23,6 +23,7 @@
 #include <helpers/ui/editor/menu/MainMenuBar.h>
 #include <helpers/common/NodeMgr.h>
 #include <helpers/common/FFLMgr.h>
+#include <helpers/editor/EditorMgr.h>
 #include <filesystem>
 
 #if RIO_IS_CAFE
@@ -37,10 +38,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #endif // RIO_IS_CAFE
-#include <format>
 #include <helpers/ui/ThemeMgr.h>
-
-__attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) ModelNode::ViewBlock RootTask::sViewBlock;
 
 RootTask::RootTask() : ITask("FFL Testing"), mInitialized(false)
 {
@@ -88,6 +86,7 @@ void RootTask::prepare_()
     }
 
     mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
+
     mInitialized = true;
 }
 
@@ -171,13 +170,13 @@ void RootTask::Render()
                         if (!node || !node->nodeKey)
                             continue;
 
-                        bool isNodeSelected = (NodeMgr::instance()->GetSelectedNode() == node.get());
+                        bool isNodeSelected = (EditorMgr::instance()->selectedNode == node.get());
 
                         if (isNodeSelected)
                             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
                         if (ImGui::Button(node.get()->nodeKey, ImVec2(ImGui::GetItemRectSize().x, 25)))
-                            NodeMgr::instance()->SetSelectedNode(node.get());
+                            EditorMgr::instance()->selectedNode = node.get();
 
                         if (isNodeSelected)
                             ImGui::PopStyleColor();
@@ -197,28 +196,59 @@ void RootTask::Render()
 
             if (ImGui::Begin("Properties", __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
             {
+
+                ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {1.f, 1.f});
+
                 if (ImGui::BeginChild("nodes", ImGui::GetContentRegionAvail(), ImGuiChildFlags_AutoResizeY))
                 {
-                    if (NodeMgr::instance()->GetSelectedNode())
+                    if (EditorMgr::instance()->selectedNode)
                     {
-                        ImGui::Text("Selected node: %s", NodeMgr::instance()->GetSelectedNode()->nodeKey);
+                        EditorMgr::instance()->CreateNodePropertiesMenu();
+
+                        rio::Vector3f nodePos, nodeScale;
+                        nodePos = EditorMgr::instance()->selectedNode->GetPosition();
+                        nodeScale = EditorMgr::instance()->selectedNode->GetScale();
+
+                        rio::PrimitiveRenderer::instance()->begin();
+
+                        rio::PrimitiveRenderer::CubeArg outlineArg;
+                        outlineArg.setCenter(nodePos);
+                        outlineArg.setColor({1.f, 1.f, 1.f, 1.f});
+                        outlineArg.setSize(nodeScale);
+
+                        rio::PrimitiveRenderer::instance()->end();
+
+                        rio::PrimitiveRenderer::instance()->drawWireCube(outlineArg);
                     }
+
+                    ImGui::PopStyleVar(ImGuiStyleVar_CellPadding);
                 }
 
                 ImGui::End();
             }
 
             ImVec2 assetsSize = ImVec2(io.DisplaySize.x - layoutSize.x - propertiesSize.x, 340.0f); // Adjust the height as needed
-            ImVec2 assetsPos = ImVec2(layoutSize.x, io.DisplaySize.y - assetsSize.y - ImGui::GetStyle().WindowPadding.y - ImGui::GetStyle().FramePadding.y - 10);
+            ImVec2 assetsPos = ImVec2(layoutSize.x, io.DisplaySize.y - assetsSize.y);
 
             ImGui::SetNextWindowPos(assetsPos);
             ImGui::SetNextWindowSize(assetsSize);
 
-            if (ImGui::Begin("Assets", __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+            EditorMgr::instance()->assetsWindowString = "Assets (";
+            EditorMgr::instance()->assetsWindowString.append(EditorMgr::instance()->currentAssetsEditorDirectory);
+            EditorMgr::instance()->assetsWindowString.append(")");
+
+            if (ImGui::Begin(EditorMgr::instance()->assetsWindowString.c_str(), __null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
             {
                 if (ImGui::BeginChild("folders", {200, ImGui::GetContentRegionAvail().y}, ImGuiChildFlags_AutoResizeY))
                 {
-                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath()))
+                    // Error comes from here
+                    if (ImGui::Button("Root Directory", ImVec2(ImGui::GetItemRectSize().x, 25)))
+                    {
+                        EditorMgr::instance()->currentAssetsEditorDirectory = "/";
+                    }
+                    // To here
+
+                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
                     {
                         if (!entry.is_directory())
                             continue;
@@ -228,7 +258,7 @@ void RootTask::Render()
 
                         if (ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
                         {
-                            // Button clicked logic
+                            EditorMgr::instance()->currentAssetsEditorDirectory = pathName;
                         }
                     }
 
@@ -239,7 +269,7 @@ void RootTask::Render()
 
                 if (ImGui::BeginChild("contents", ImGui::GetContentRegionAvail()))
                 {
-                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath()))
+                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
                     {
                         std::string pathName = entry.path().filename().string();
 
@@ -255,6 +285,7 @@ void RootTask::Render()
 
             ImGui::End();
         }
+
         ImGui::Render();
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -284,12 +315,11 @@ void RootTask::exit_()
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
 #endif // RIO_IS_CAFE
-    ImGui::DestroyContext();
     ThemeMgr::destroySingleton();
+    ImGui::DestroyContext();
 
     // Check if mpModel is not null before deleting it.
     delete mpModel; // FFLCharModel destruction must happen before FFLExit
-    // delete[] miiBufferSize;
 
     mInitialized = false;
 }

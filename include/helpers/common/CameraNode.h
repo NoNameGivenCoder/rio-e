@@ -13,7 +13,8 @@ class CameraNode : public Node
 public:
     enum CameraType
     {
-        CAMERA_NODE_FLYCAM = 0
+        CAMERA_NODE_FLYCAM = 0,
+        CAMERA_NODE_NONE = 1
     };
 
     struct CameraNodeInitArgs
