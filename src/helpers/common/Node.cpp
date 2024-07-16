@@ -2,13 +2,13 @@
 #include <math/rio_Math.h>
 #include <helpers/common/NodeMgr.h>
 
-Node::Node(const char *pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale)
+Node::Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale)
 {
-    nodeKey = (char *)pNodeKey;
+    nodeKey = pNodeKey;
     transformMatrix.makeSRT(pScale, pRot, pPos);
     ID = NodeMgr::instance()->GetNodeCount() + 1;
 
-    RIO_LOG("[NODE] New node created with key: %s.\n", nodeKey);
+    RIO_LOG("[NODE] New node created with key: %s.\n", nodeKey.c_str());
     NodeMgr::instance()->AddNode(this);
 };
 
@@ -16,9 +16,15 @@ rio::Vector3f Node::GetScale()
 {
     rio::Vector3f scale;
 
-    scale.x = reinterpret_cast<rio::Vector3f &>(transformMatrix.v[0].x);
-    scale.y = reinterpret_cast<rio::Vector3f &>(transformMatrix.v[1].x);
-    scale.z = reinterpret_cast<rio::Vector3f &>(transformMatrix.v[2].x);
+    // Extract the basis vectors
+    const rio::Vector3f &v1 = reinterpret_cast<const rio::Vector3f &>(transformMatrix.m[0][0]);
+    const rio::Vector3f &v2 = reinterpret_cast<const rio::Vector3f &>(transformMatrix.m[1][0]);
+    const rio::Vector3f &v3 = reinterpret_cast<const rio::Vector3f &>(transformMatrix.m[2][0]);
+
+    // Compute the length (norm) of each basis vector to get the scale factors
+    scale.x = std::sqrt(v1.x * v1.x + v1.y * v1.y + v1.z * v1.z);
+    scale.y = std::sqrt(v2.x * v2.x + v2.y * v2.y + v2.z * v2.z);
+    scale.z = std::sqrt(v3.x * v3.x + v3.y * v3.y + v3.z * v3.z);
 
     return scale;
 }
@@ -55,4 +61,11 @@ rio::Vector3f Node::GetRotation()
     }
 
     return rotation;
+}
+
+int Node::AddProperty(Property *pProperty)
+{
+    properties.emplace_back(pProperty);
+    pProperty->parentNode = this;
+    return 0;
 }

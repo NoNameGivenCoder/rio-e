@@ -9,7 +9,7 @@
 
 #include <filedevice/rio_FileDeviceMgr.h>
 
-#include <helpers/audio/AudioNode.h>
+#include <helpers/audio/AudioProperty.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
 #include <helpers/common/CameraNode.h>
@@ -42,9 +42,7 @@ private:
     Model *mpModel;
     ImGuiIO *p_io;
 
-    AudioNode *mMainBgmAudioNode;
     ModelNode *mMainModelNode;
-    LightNode *mLightNode;
     CameraNode *mCamera;
 
     bool isDebuggingOpen;

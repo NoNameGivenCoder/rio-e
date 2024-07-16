@@ -3,16 +3,21 @@
 
 #include <rio.h>
 #include <math/rio_Matrix.h>
+#include <vector>
+#include <memory>
+#include <string>
+#include <helpers/common/Property.h>
 
 class Node
 {
 public:
     rio::Matrix34f transformMatrix;
-    char *nodeKey;
+    std::vector<std::unique_ptr<Property>> properties;
+    std::string nodeKey;
     int ID;
 
     virtual ~Node() = default;
-    Node(const char *pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale);
+    Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale);
 
     rio::Vector3f GetScale();
     rio::Vector3f GetPosition();
@@ -23,6 +28,24 @@ public:
     void SetRotation(rio::Vector3f pRot) { transformMatrix.makeR(pRot); };
 
     bool isEditorSelected = false;
+
+    int AddProperty(Property *pProperty);
+
+    template <typename T>
+    std::vector<T *> GetProperty()
+    {
+        std::vector<T *> result;
+
+        for (const auto &property : properties)
+        {
+            if (T *propertyFound = dynamic_cast<T *>(property.get()))
+            {
+                result.push_back(propertyFound);
+            }
+        }
+
+        return result;
+    }
 };
 
 #endif // COMMONHELPER_H

@@ -1,4 +1,6 @@
 #include <helpers/editor/EditorMgr.h>
+#include <helpers/common/Property.h>
+#include <helpers/audio/AudioProperty.h>
 #include <string>
 #include <imgui.h>
 
@@ -77,5 +79,17 @@ void EditorMgr::CreateNodePropertiesMenu()
         ImGui::SameLine();
         if (ImGui::DragFloat("scaleZ", &nodeScale.z, 0.01f))
             selectedNode->SetScale(nodeScale);
+    }
+
+    if (selectedNode->properties.size() > 0)
+    {
+        if (ImGui::CollapsingHeader("Properties"))
+        {
+            for (const auto &property : selectedNode->properties)
+            {
+                if (AudioProperty *audioProperty = dynamic_cast<AudioProperty *>(property.get()))
+                    audioProperty->CreatePropertiesMenu();
+            }
+        }
     }
 }

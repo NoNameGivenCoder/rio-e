@@ -6,6 +6,7 @@
 #include <helpers/common/Node.h>
 #include <vector>
 #include <memory>
+#include <string>
 
 class NodeMgr
 {
@@ -15,6 +16,8 @@ public:
 
     static int AddNode(Node *pNode);
     static bool DeleteNode(const int pIndex);
+
+    static bool LoadFromFile(std::string fileName);
 
     std::vector<std::unique_ptr<Node>> mNodes;
 

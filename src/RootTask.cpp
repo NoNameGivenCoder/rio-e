@@ -16,7 +16,7 @@
 #include <gpu/rio_Drawer.h>
 #include <gpu/rio_RenderState.h>
 
-#include <helpers/audio/AudioNode.h>
+#include <helpers/audio/AudioProperty.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
 
@@ -62,30 +62,30 @@ void RootTask::prepare_()
 
     mCamera = new CameraNode("mainCameraNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
     mCamera->Init({CameraNode::CAMERA_NODE_FLYCAM, 90.f});
-    mMainBgmAudioNode = new AudioNode("mainBgmAudioNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
-    {
-        // Set light uniform block data and invalidate cache now as it won't be modified
-        mLightNode = new LightNode("mainLightNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
-        mLightNode->Init({{1.f, 1.f, 1.f, 1.f}, LightNode::LIGHT_NODE_VISIBLE, LightNode::LIGHT_NODE_SPHERE, 0.5f});
 
-        // Load coin model
-        rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("MiiBody", "miiMarioBody");
+    NodeMgr::instance()->LoadFromFile("testMap.yaml");
 
-        f32 angle = rio::Mathf::deg2rad(20) * 1;
+    //{
+    // Set light uniform block data and invalidate cache now as it won't be modified
+    // mLightNode = new LightNode("mainLightNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
+    // mLightNode->Init({{1.f, 1.f, 1.f, 1.f}, LightNode::LIGHT_NODE_VISIBLE, LightNode::LIGHT_NODE_SPHERE, 0.5f});
 
-        // Model (local-to-world) matrix
-        rio::Matrix34f model_mtx;
-        model_mtx.makeST(
-            {0.7f, 0.7f, 0.7f},
-            {0, -7.8f, 0});
+    // Load coin model
+    // rio::mdl::res::Model *mario_res_mdl = rio::mdl::res::ModelCacher::instance()->loadModel("MiiBody", "miiMarioBody");
 
-        mMainModelNode = new ModelNode(mario_res_mdl, "cViewBlock", "cLightBlock", "cModelBlock");
+    // f32 angle = rio::Mathf::deg2rad(20) * 1;
 
-        // Set model's local-to-world matrix
-        mMainModelNode->setModelWorldMtx(model_mtx);
-    }
+    // Model (local-to-world) matrix
+    // rio::Matrix34f model_mtx;
+    // model_mtx.makeST(
+    //   {0.7f, 0.7f, 0.7f},
+    //    {0, -7.8f, 0});
 
-    mMainBgmAudioNode->PlayBgm("MAIN_THEME_NIGHT.mp3", "mainThemeNight", 0.2f, true);
+    // mMainModelNode = new ModelNode(mario_res_mdl, "cViewBlock", "cLightBlock", "cModelBlock");
+
+    // Set model's local-to-world matrix
+    // mMainModelNode->setModelWorldMtx(model_mtx);
+    //}
 
     mInitialized = true;
 }
@@ -113,15 +113,15 @@ void RootTask::calc_()
         return;
 
     mCamera->Update();
-    mMainBgmAudioNode->UpdateAudio(mCamera);
-    // Get view matrix
+    //   mMainBgmAudioNode->Update();
+    //    Get view matrix
     rio::BaseMtx34f view_mtx;
     mCamera->mCamera.getMatrix(&view_mtx);
 
     mpModel->drawOpa(view_mtx, mCamera->mProjMtx);
     mpModel->drawXlu(view_mtx, mCamera->mProjMtx);
-    mMainModelNode->Draw();
-    mLightNode->Draw();
+    //  mMainModelNode->Draw();
+    //  mLightNode->Draw();
 
     Render();
 }
@@ -149,7 +149,6 @@ void RootTask::Render()
 
                 if (ImGui::BeginMenu("Edit"))
                 {
-                    ImGui::EndMenu();
                 }
 
                 ImGui::EndMainMenuBar();
@@ -167,7 +166,7 @@ void RootTask::Render()
                 {
                     for (const auto &node : NodeMgr::instance()->mNodes)
                     {
-                        if (!node || !node->nodeKey)
+                        if (!node || !node->nodeKey.c_str())
                             continue;
 
                         bool isNodeSelected = (EditorMgr::instance()->selectedNode == node.get());
@@ -175,7 +174,7 @@ void RootTask::Render()
                         if (isNodeSelected)
                             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
-                        if (ImGui::Button(node.get()->nodeKey, ImVec2(ImGui::GetItemRectSize().x, 25)))
+                        if (ImGui::Button(node.get()->nodeKey.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
                             EditorMgr::instance()->selectedNode = node.get();
 
                         if (isNodeSelected)
@@ -271,11 +270,10 @@ void RootTask::Render()
                 {
                     for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
                     {
-                        std::string pathName = entry.path().filename().string();
-
                         if (entry.is_directory())
-                            pathName.append("/");
+                            continue;
 
+                        std::string pathName = entry.path().filename().string();
                         ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25));
                     }
 
