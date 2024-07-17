@@ -5,7 +5,6 @@
 #include <helpers/common/NodeMgr.h>
 
 #include <helpers/model/LightNode.h>
-#include <helpers/common/CameraNode.h>
 
 #include <vector>
 #include <memory>
@@ -83,7 +82,7 @@ ModelNode::~ModelNode()
 
 void ModelNode::Draw() const
 {
-    CameraNode *mCamera = NodeMgr::instance()->GetNodesByType<CameraNode>().at(0);
+    CameraNode *mCamera = nullptr;
 
     if (!mCamera)
         return;

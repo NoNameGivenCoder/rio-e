@@ -1,5 +1,4 @@
 #include <helpers/common/NodeMgr.h>
-#include <helpers/common/CameraNode.h>
 #include <helpers/model/LightNode.h>
 #include <helpers/ui/editor/menu/MainMenuBar.h>
 #include <vector>

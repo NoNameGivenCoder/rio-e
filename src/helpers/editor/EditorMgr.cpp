@@ -1,6 +1,6 @@
 #include <helpers/editor/EditorMgr.h>
-#include <helpers/common/Property.h>
-#include <helpers/audio/AudioProperty.h>
+#include <helpers/properties/Property.h>
+#include <helpers/properties/audio/AudioProperty.h>
 #include <string>
 #include <imgui.h>
 
@@ -87,7 +87,7 @@ void EditorMgr::CreateNodePropertiesMenu()
         {
             for (const auto &property : selectedNode->properties)
             {
-                if (AudioProperty *audioProperty = dynamic_cast<AudioProperty *>(property.get()))
+                if (auto audioProperty = dynamic_cast<AudioProperty *>(property.get()))
                     audioProperty->CreatePropertiesMenu();
             }
         }

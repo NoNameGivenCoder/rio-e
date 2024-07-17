@@ -3,12 +3,12 @@
 #include <gfx/rio_Color.h>
 
 #include <helpers/common/NodeMgr.h>
-#include <helpers/common/CameraNode.h>
 #include <helpers/model/LightNode.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/common/Node.h>
-#include <helpers/common/Property.h>
-#include <helpers/audio/AudioProperty.h>
+#include <helpers/properties/Property.h>
+#include <helpers/properties/audio/AudioProperty.h>
+#include <helpers/properties/map/CameraProperty.h>
 
 #include <cstring>
 #include <vector>
@@ -60,12 +60,12 @@ bool NodeMgr::DeleteNode(const int pIndex)
     return true;
 }
 
-int NodeMgr::AddNode(Node *pNode)
+int NodeMgr::AddNode(std::shared_ptr<Node> pNode)
 {
     if (!pNode)
         return -1;
 
-    mInstance->mNodes.emplace_back(std::unique_ptr<Node>(pNode));
+    mInstance->mNodes.push_back(pNode);
     RIO_LOG("[NODEMGR] Added %s to NodeMgr.\n", pNode->nodeKey.c_str());
 
     return mInstance->mNodes.size() - 1;
@@ -126,18 +126,28 @@ bool NodeMgr::LoadFromFile(std::string fileName)
         nodeRotation = {node["transform"]["rotation"]["x"].as<f32>(), node["transform"]["rotation"]["y"].as<f32>(), node["transform"]["rotation"]["z"].as<f32>()};
         nodeScale = {node["transform"]["scale"]["x"].as<f32>(), node["transform"]["scale"]["y"].as<f32>(), node["transform"]["scale"]["z"].as<f32>()};
 
-        Node *addedNode = new Node(nodeName, nodePosition, nodeRotation, nodeScale);
+        auto addedNode = std::make_shared<Node>(nodeName, nodePosition, nodeRotation, nodeScale);
+        NodeMgr::instance()->AddNode(addedNode);
 
         for (YAML::const_iterator pt = node["properties"].begin(); pt != node["properties"].end(); ++pt)
         {
             std::string propertyName = pt->first.as<std::string>();
             YAML::Node propertyNode = pt->second;
 
+            RIO_LOG("[NODEMGR] Loading Property: %s..\n", propertyName.c_str());
+
             if (propertyName == "Audio")
             {
-                AudioProperty *audioProperty = new AudioProperty(addedNode);
+                auto audioProperty = std::make_unique<AudioProperty>(addedNode);
                 audioProperty->Load(propertyNode);
-                addedNode->AddProperty(audioProperty);
+                addedNode->AddProperty(std::move(audioProperty));
+            }
+
+            if (propertyName == "Camera")
+            {
+                auto cameraProperty = std::make_unique<CameraProperty>(addedNode);
+                cameraProperty->Load(propertyNode);
+                addedNode->AddProperty(std::move(cameraProperty));
             }
 
             RIO_LOG("[NODEMGR] Added Property: %s\n", propertyName.c_str());
@@ -145,4 +155,15 @@ bool NodeMgr::LoadFromFile(std::string fileName)
     }
 
     return true;
+}
+
+void NodeMgr::Update()
+{
+    for (auto &node : mNodes)
+    {
+        for (auto &property : node->properties)
+        {
+            property->Update();
+        }
+    }
 }

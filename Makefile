@@ -87,7 +87,7 @@ YAML_PARSER_SRC := $(shell find ../yaml-cpp-0.8.0/src -name '*.c' -o -name '*.cp
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/common/Property.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/common/CameraNode.cpp src/helpers/common/NodeMgr.cpp src/helpers/audio/AudioProperty.cpp src/helpers/model/LightNode.cpp src/helpers/model/ModelNode.cpp src/Model.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/properties/Property.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/helpers/model/LightNode.cpp src/Model.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)

@@ -86,7 +86,7 @@ void ThemeMgr::loadThemes_()
     colors[ImGuiCol_Button] = ImVec4(0.0f, 0.0f, 0.0f, 0.f);
     colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.77f, 0.98f, 0.5f);
     colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.71f, 0.98f, 1.00f);
-    colors[ImGuiCol_Header] = ImVec4(0.26f, 0.77f, 0.98f, 0.31f);
+    colors[ImGuiCol_Header] = ImVec4(0.26f, 0.77f, 0.98f, 0.0f);
     colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.77f, 0.98f, 0.80f);
     colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.77f, 0.98f, 1.00f);
     colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.48f, 0.50f, 0.50f);

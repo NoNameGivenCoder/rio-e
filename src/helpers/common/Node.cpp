@@ -1,6 +1,7 @@
 #include <helpers/common/Node.h>
 #include <math/rio_Math.h>
 #include <helpers/common/NodeMgr.h>
+#include <helpers/properties/Property.h>
 
 Node::Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale)
 {
@@ -9,7 +10,6 @@ Node::Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Ve
     ID = NodeMgr::instance()->GetNodeCount() + 1;
 
     RIO_LOG("[NODE] New node created with key: %s.\n", nodeKey.c_str());
-    NodeMgr::instance()->AddNode(this);
 };
 
 rio::Vector3f Node::GetScale()
@@ -63,9 +63,8 @@ rio::Vector3f Node::GetRotation()
     return rotation;
 }
 
-int Node::AddProperty(Property *pProperty)
+bool Node::AddProperty(std::unique_ptr<Property> pProperty)
 {
-    properties.emplace_back(pProperty);
-    pProperty->parentNode = this;
-    return 0;
+    properties.push_back(std::move(pProperty));
+    return true;
 }

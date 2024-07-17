@@ -6,7 +6,9 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include <helpers/common/Property.h>
+#include <helpers/properties/Property.h>
+
+class Property;
 
 class Node
 {
@@ -16,7 +18,7 @@ public:
     std::string nodeKey;
     int ID;
 
-    virtual ~Node() = default;
+    virtual ~Node() { properties.clear(); };
     Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale);
 
     rio::Vector3f GetScale();
@@ -29,7 +31,7 @@ public:
 
     bool isEditorSelected = false;
 
-    int AddProperty(Property *pProperty);
+    bool AddProperty(std::unique_ptr<Property> pProperty);
 
     template <typename T>
     std::vector<T *> GetProperty()

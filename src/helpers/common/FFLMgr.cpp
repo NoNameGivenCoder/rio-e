@@ -45,7 +45,10 @@ bool FFLMgr::destorySingleton()
         // mInstance->mResourceDesc.pData[FFL_RESOURCE_TYPE_MIDDLE] = nullptr;
     }
 
-    delete[] mInstance->miiBufferSize;
+    if (mInstance->miiBufferSize)
+    {
+        rio::MemUtil::free(mInstance->miiBufferSize);
+    }
     delete mInstance;
     // mInstance = nullptr;
     //  mInstance->miiBufferSize = nullptr;

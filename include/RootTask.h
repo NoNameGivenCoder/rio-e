@@ -9,11 +9,6 @@
 
 #include <filedevice/rio_FileDeviceMgr.h>
 
-#include <helpers/audio/AudioProperty.h>
-#include <helpers/model/ModelNode.h>
-#include <helpers/model/LightNode.h>
-#include <helpers/common/CameraNode.h>
-
 class Model;
 
 class RootTask : public rio::ITask
@@ -41,9 +36,6 @@ private:
     float FOV;
     Model *mpModel;
     ImGuiIO *p_io;
-
-    ModelNode *mMainModelNode;
-    CameraNode *mCamera;
 
     bool isDebuggingOpen;
 };

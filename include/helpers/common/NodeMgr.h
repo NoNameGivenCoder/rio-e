@@ -14,16 +14,18 @@ public:
     static bool createSingleton();
     static bool destorySingleton();
 
-    static int AddNode(Node *pNode);
+    static int AddNode(std::shared_ptr<Node> pNode);
     static bool DeleteNode(const int pIndex);
 
     static bool LoadFromFile(std::string fileName);
 
-    std::vector<std::unique_ptr<Node>> mNodes;
+    std::vector<std::shared_ptr<Node>> mNodes;
 
     static inline NodeMgr *instance() { return mInstance; };
     static inline int GetNodeCount() { return mInstance ? mInstance->mNodes.size() : 0; };
     static inline void ClearAllNodes() { return mInstance->mNodes.clear(); };
+
+    void Update();
 
     Node *GetNodeByKey(const char *pKey);
     Node *GetNodeByID(const int ID);

@@ -16,7 +16,6 @@
 #include <gpu/rio_Drawer.h>
 #include <gpu/rio_RenderState.h>
 
-#include <helpers/audio/AudioProperty.h>
 #include <helpers/model/ModelNode.h>
 #include <helpers/model/LightNode.h>
 
@@ -60,8 +59,10 @@ void RootTask::prepare_()
 
     FOV = 90.f;
 
-    mCamera = new CameraNode("mainCameraNode", {0, 0, 0}, {0, 0, 0}, {1, 1, 1});
-    mCamera->Init({CameraNode::CAMERA_NODE_FLYCAM, 90.f});
+    // mCamera = std::make_shared<CameraNode>();
+    // mCamera.get()->nodeKey = "mainCameraNode";
+    // mCamera->Init({CameraNode::CAMERA_NODE_FLYCAM, 90.f});
+    // NodeMgr::instance()->AddNode(mCamera);
 
     NodeMgr::instance()->LoadFromFile("testMap.yaml");
 
@@ -112,16 +113,18 @@ void RootTask::calc_()
     if (!mInitialized)
         return;
 
-    mCamera->Update();
-    //   mMainBgmAudioNode->Update();
-    //    Get view matrix
+    // mCamera->Update();
+    //    mMainBgmAudioNode->Update();
+    //     Get view matrix
     rio::BaseMtx34f view_mtx;
-    mCamera->mCamera.getMatrix(&view_mtx);
+    // mCamera->mCamera.getMatrix(&view_mtx);
 
-    mpModel->drawOpa(view_mtx, mCamera->mProjMtx);
-    mpModel->drawXlu(view_mtx, mCamera->mProjMtx);
-    //  mMainModelNode->Draw();
-    //  mLightNode->Draw();
+    // mpModel->drawOpa(view_mtx, mCamera->mProjMtx);
+    // mpModel->drawXlu(view_mtx, mCamera->mProjMtx);
+    //   mMainModelNode->Draw();
+    //   mLightNode->Draw();
+
+    NodeMgr::instance()->Update();
 
     Render();
 }
@@ -141,7 +144,9 @@ void RootTask::Render()
             {
                 if (ImGui::BeginMenu("File"))
                 {
-                    ImGui::MenuItem("Create New Scene");
+                    if (ImGui::MenuItem("Create New Scene"))
+                        NodeMgr::instance()->ClearAllNodes();
+
                     ImGui::MenuItem("Save Scene", "Ctrl+S");
                     ImGui::MenuItem("Open Scene", "Ctrl+O");
                     ImGui::EndMenu();
@@ -174,7 +179,7 @@ void RootTask::Render()
                         if (isNodeSelected)
                             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
-                        if (ImGui::Button(node.get()->nodeKey.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
+                        if (ImGui::Button(node->nodeKey.c_str(), ImVec2(ImGui::GetItemRectSize().x, 22)))
                             EditorMgr::instance()->selectedNode = node.get();
 
                         if (isNodeSelected)
@@ -240,45 +245,43 @@ void RootTask::Render()
             {
                 if (ImGui::BeginChild("folders", {200, ImGui::GetContentRegionAvail().y}, ImGuiChildFlags_AutoResizeY))
                 {
-                    // Error comes from here
                     if (ImGui::Button("Root Directory", ImVec2(ImGui::GetItemRectSize().x, 25)))
                     {
                         EditorMgr::instance()->currentAssetsEditorDirectory = "/";
                     }
-                    // To here
 
-                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
-                    {
-                        if (!entry.is_directory())
-                            continue;
+                    // for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
+                    //{
+                    // if (!entry.is_directory())
+                    //        continue;
 
-                        std::string pathName = entry.path().filename().string();
-                        pathName.append("/");
+                    //    std::string pathName = entry.path().filename().string();
+                    //    pathName.append("/");
 
-                        if (ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
-                        {
-                            EditorMgr::instance()->currentAssetsEditorDirectory = pathName;
-                        }
-                    }
+                    //   if (ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25)))
+                    //    {
+                    // EditorMgr::instance()->currentAssetsEditorDirectory = pathName;
+                    //    }
+                    //}
 
-                    ImGui::EndChild();
+                    // ImGui::EndChild();
                 }
 
-                ImGui::SameLine();
+                // ImGui::SameLine();
 
-                if (ImGui::BeginChild("contents", ImGui::GetContentRegionAvail()))
-                {
-                    for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
-                    {
-                        if (entry.is_directory())
-                            continue;
+                // if (ImGui::BeginChild("contents", ImGui::GetContentRegionAvail()))
+                //{
+                // for (const auto &entry : std::filesystem::directory_iterator(rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/" + EditorMgr::instance()->currentAssetsEditorDirectory))
+                //{
+                //     if (entry.is_directory())
+                //         continue;
 
-                        std::string pathName = entry.path().filename().string();
-                        ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25));
-                    }
+                //   std::string pathName = entry.path().filename().string();
+                //    ImGui::Button(pathName.c_str(), ImVec2(ImGui::GetItemRectSize().x, 25));
+                //}
 
-                    ImGui::EndChild();
-                }
+                // ImGui::EndChild();
+                //}
             }
 
             ImGui::End();
@@ -330,7 +333,7 @@ void RootTask::initImgui()
     ThemeMgr::createSingleton();
     ImGuiIO &io = ImGui::GetIO();
     p_io = &io;
-    io.Fonts->AddFontFromFileTTF("./fs/content/font/editor_main.ttf", 18);
+    io.Fonts->AddFontFromFileTTF("./fs/content/font/editor_main.ttf", 17);
 #if RIO_IS_CAFE
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 #else
