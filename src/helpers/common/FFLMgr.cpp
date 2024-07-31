@@ -21,6 +21,8 @@ bool FFLMgr::createSingleton()
         return false;
     }
 
+    mInstance->mResolution = FFLResolution(2048);
+
     return true;
 }
 
@@ -62,6 +64,29 @@ void FFLMgr::CreateRandomMiddleDB(u16 pMiiLength)
     FFLInitMiddleDB(&mMiddleDB, FFL_MIDDLE_DB_TYPE_RANDOM_PARAM, miiBufferSize, pMiiLength);
     FFLUpdateMiddleDB(&mMiddleDB);
     RIO_LOG("[FFLMGR] Created Random Middle DB.\n");
+}
+
+FFLStoreData FFLMgr::GetStoreDataFromFile(std::string fileName, rio::RawErrorCode *errCode)
+{
+    rio::FileDevice *fileDevice = rio::FileDeviceMgr::instance()->getNativeFileDevice();
+    rio::FileHandle fileHandle;
+
+    fileDevice->open(&fileHandle, rio::FileDeviceMgr::instance()->getMainFileDevice()->getContentNativePath() + "/mii/" + fileName, rio::FileDevice::FILE_OPEN_FLAG_READ);
+
+    u8 readMiiData[sizeof(FFLStoreData)];
+    fileDevice->read(&fileHandle, readMiiData, sizeof(FFLStoreData));
+
+    FFLStoreData returnData;
+    rio::RawErrorCode returnErrCode = fileDevice->getLastRawError();
+
+    rio::MemUtil::copy(&returnData, readMiiData, sizeof(FFLStoreData));
+    rio::MemUtil::copy(errCode, &returnErrCode, sizeof(rio::RawErrorCode));
+
+    fileDevice->close(&fileHandle);
+
+    return returnData;
+
+    delete[] readMiiData;
 }
 
 void FFLMgr::InitializeFFL()
@@ -128,7 +153,7 @@ void FFLMgr::InitializeFFL()
 
     FFLiEnableSpecialMii(333326543);
 
-    RIO_ASSERT(FFLIsAvailable());
+    RIO_LOG("[FFLMGR] FFL Avaliable: %d\n", FFLIsAvailable());
 
     FFLInitResGPUStep();
 }

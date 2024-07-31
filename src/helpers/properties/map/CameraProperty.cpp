@@ -10,6 +10,17 @@
 #include <helpers/properties/Property.h>
 #include <helpers/common/Node.h>
 
+YAML::Node CameraProperty::Save()
+{
+    YAML::Node node;
+
+    node["Camera"]["cameraType"] = (int)(mCameraType);
+    node["Camera"]["cameraFOV"] = (float)(fov);
+    node["Camera"]["propertyId"] = Property::GetPropertyID();
+
+    return node;
+}
+
 void CameraProperty::UseFlyCam()
 {
     rio::Controller *controller = rio::ControllerMgr::instance()->getGamepad(0);
@@ -74,9 +85,13 @@ void CameraProperty::Load(YAML::Node node)
         return;
     }
 
-    f32 fov = node["cameraFOV"].as<f32>();
+    fov = node["cameraFOV"].as<f32>();
     mCameraType = static_cast<CameraType>(node["cameraType"].as<int>());
+    Property::SetPropertyID(node["propertyId"].as<int>());
+}
 
+void CameraProperty::Start()
+{
     // Get window instance
     const rio::Window *const window = rio::Window::instance();
 
@@ -92,6 +107,8 @@ void CameraProperty::Load(YAML::Node node)
 
     // Set primitive renderer projection
     rio::PrimitiveRenderer::instance()->setProjection(proj);
+
+    mInitialized = true;
 }
 
 void CameraProperty::Update()
@@ -113,11 +130,16 @@ void CameraProperty::Update()
     rio::PerspectiveProjection proj(
         0.1f,
         100.0f,
-        rio::Mathf::deg2rad(90.f),
+        rio::Mathf::deg2rad(fov),
         f32(window->getWidth()) / f32(window->getHeight()));
 
     // Calculate matrix
     rio::MemUtil::copy(&mProjMtx, &proj.getMatrix(), sizeof(rio::Matrix44f));
 
     rio::PrimitiveRenderer::instance()->setCamera(mCamera);
+    rio::AudioMgr::instance()->setListener(GetParentNode().lock()->GetPosition(), mCamera.at(), mCamera.getUp());
+}
+
+void CameraProperty::CreatePropertiesMenu()
+{
 }

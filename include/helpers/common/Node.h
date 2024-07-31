@@ -21,13 +21,29 @@ public:
     virtual ~Node() { properties.clear(); };
     Node(std::string pNodeKey, rio::Vector3f pPos, rio::Vector3f pRot, rio::Vector3f pScale);
 
-    rio::Vector3f GetScale();
-    rio::Vector3f GetPosition();
-    rio::Vector3f GetRotation();
+    inline rio::Vector3f GetScale() { return mScale; };
+    inline rio::Vector3f GetPosition() { return mPosition; };
+    inline rio::Vector3f GetRotation() { return mRotation; };
 
-    void SetScale(rio::Vector3f pScale) { transformMatrix.applyScaleLocal(pScale); };
-    void SetPosition(rio::Vector3f pPos) { transformMatrix.makeT(pPos); };
-    void SetRotation(rio::Vector3f pRot) { transformMatrix.makeR(pRot); };
+    inline void SetScale(rio::Vector3f pScale)
+    {
+        mScale = pScale;
+        return UpdateMatrix();
+    };
+
+    inline void SetPosition(rio::Vector3f pPos)
+    {
+        mPosition = pPos;
+        return UpdateMatrix();
+    };
+
+    inline void SetRotation(rio::Vector3f pRot)
+    {
+        mRotation = pRot;
+        return UpdateMatrix();
+    };
+
+    void CreateNodeProperties();
 
     bool isEditorSelected = false;
 
@@ -48,6 +64,13 @@ public:
 
         return result;
     }
+
+private:
+    rio::Vector3f mPosition;
+    rio::Vector3f mRotation;
+    rio::Vector3f mScale;
+
+    inline void UpdateMatrix() { transformMatrix.makeSRT(mScale, mRotation, mPosition); };
 };
 
 #endif // COMMONHELPER_H

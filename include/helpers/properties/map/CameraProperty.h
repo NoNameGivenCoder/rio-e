@@ -27,9 +27,14 @@ public:
     using Property::Property;
 
     void Load(YAML::Node node);
+    YAML::Node Save() override;
+
     void Update() override;
+    void Start() override;
+    void CreatePropertiesMenu() override;
 
     inline rio::LookAtCamera GetCamera() { return mCamera; };
+    inline rio::Matrix44f GetProjectionMatrix() { return mProjMtx; };
 
 private:
     void UseFlyCam();
@@ -37,6 +42,8 @@ private:
     CameraType mCameraType;
     rio::LookAtCamera mCamera;
     rio::Matrix44f mProjMtx;
+    rio::Color4f mClearColor = {0.2f, 0.3f, 0.3f, 0.0f};
+    f32 fov = 90.f;
 };
 
 #endif // CAMERAHELPER_H

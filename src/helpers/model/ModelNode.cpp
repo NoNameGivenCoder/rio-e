@@ -88,16 +88,17 @@ void ModelNode::Draw() const
         return;
 
     rio::Matrix34f view_mtx;
+    rio::Matrix44f view_proj_mtx;
+    rio::RenderState render_state;
+
     mCamera->mCamera.getMatrix(&view_mtx);
 
     // Calculate view-projection matrix (Projection x View)
-    rio::Matrix44f view_proj_mtx;
     view_proj_mtx.setMul(mCamera->mProjMtx, view_mtx);
 
     sViewBlock.view_pos = mCamera->GetPosition();
     sViewBlock.view_proj_mtx = view_proj_mtx;
 
-    rio::RenderState render_state;
     render_state.apply();
 
     LightNode *mLight = NodeMgr::instance()->GetNodesByType<LightNode>().at(0);

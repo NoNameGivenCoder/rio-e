@@ -7,8 +7,8 @@
 #include <helpers/model/ModelNode.h>
 #include <helpers/common/Node.h>
 #include <helpers/properties/Property.h>
-#include <helpers/properties/audio/AudioProperty.h>
-#include <helpers/properties/map/CameraProperty.h>
+
+#include <gfx/rio_PrimitiveRenderer.h>
 
 #include <cstring>
 #include <vector>
@@ -76,12 +76,12 @@ Node *NodeMgr::GetNodeByIndex(const int pIndex)
     return mInstance->mNodes.at(pIndex).get();
 }
 
-Node *NodeMgr::GetNodeByKey(const char *pKey)
+std::shared_ptr<Node> NodeMgr::GetNodeByKey(const char *pKey)
 {
     for (const auto &node : mNodes)
     {
         if (strcmp(node.get()->nodeKey.c_str(), pKey) == 0)
-            return node.get();
+            return node;
     }
 
     return nullptr;
@@ -107,6 +107,7 @@ bool NodeMgr::LoadFromFile(std::string fileName)
     RIO_LOG("[NODEMGR] Loading YAML from %s\n", mapFolderPath.c_str());
 
     YAML::Node mapYaml = YAML::LoadFile(mapFolderPath);
+    mInstance->currentFilePath = mapFolderPath;
 
     if (!mapYaml["nodes"])
         return false;
@@ -136,29 +137,95 @@ bool NodeMgr::LoadFromFile(std::string fileName)
 
             RIO_LOG("[NODEMGR] Loading Property: %s..\n", propertyName.c_str());
 
-            if (propertyName == "Audio")
+            auto fp = mPropertyFactory.find(propertyName);
+            if (fp != mPropertyFactory.end())
             {
-                auto audioProperty = std::make_unique<AudioProperty>(addedNode);
-                audioProperty->Load(propertyNode);
-                addedNode->AddProperty(std::move(audioProperty));
-            }
+                auto property = fp->second(addedNode);
+                property->Load(propertyNode);
+                addedNode->AddProperty(std::move(property));
 
-            if (propertyName == "Camera")
+                RIO_LOG("[NODEMGR] Added Property: %s\n", propertyName.c_str());
+            }
+            else
             {
-                auto cameraProperty = std::make_unique<CameraProperty>(addedNode);
-                cameraProperty->Load(propertyNode);
-                addedNode->AddProperty(std::move(cameraProperty));
+                RIO_LOG("[NODEMGR] Unknown Property: %s\n", propertyName.c_str());
             }
-
-            RIO_LOG("[NODEMGR] Added Property: %s\n", propertyName.c_str());
         }
     }
 
     return true;
 }
 
+bool NodeMgr::SaveToFile()
+{
+    YAML::Emitter outYaml;
+
+    outYaml << YAML::BeginMap;
+    outYaml << YAML::Key << "nodes" << YAML::BeginMap;
+
+    for (auto &node : mInstance->mNodes)
+    {
+        outYaml << YAML::Key << node->ID << YAML::BeginMap;
+        outYaml << YAML::Key << "name" << YAML::Value << node->nodeKey;
+
+        outYaml << YAML::Key << "transform" << YAML::BeginMap;
+
+        outYaml << YAML::Key << "position" << YAML::BeginMap;
+        outYaml << YAML::Key << "x" << YAML::Value << node->GetPosition().x;
+        outYaml << YAML::Key << "y" << YAML::Value << node->GetPosition().y;
+        outYaml << YAML::Key << "z" << YAML::Value << node->GetPosition().z << YAML::EndMap;
+
+        outYaml << YAML::Key << "rotation" << YAML::BeginMap;
+        outYaml << YAML::Key << "x" << YAML::Value << node->GetRotation().x;
+        outYaml << YAML::Key << "y" << YAML::Value << node->GetRotation().y;
+        outYaml << YAML::Key << "z" << YAML::Value << node->GetRotation().z << YAML::EndMap;
+
+        outYaml << YAML::Key << "scale" << YAML::BeginMap;
+        outYaml << YAML::Key << "x" << YAML::Value << node->GetScale().x;
+        outYaml << YAML::Key << "y" << YAML::Value << node->GetScale().y;
+        outYaml << YAML::Key << "z" << YAML::Value << node->GetScale().z << YAML::EndMap << YAML::EndMap;
+
+        outYaml << YAML::Key << "properties" << YAML::BeginMap;
+
+        for (auto &property : node->properties)
+        {
+            YAML::Node propertyNode = property->Save();
+            outYaml << YAML::Key << propertyNode.begin()->first << YAML::Value << propertyNode.begin()->second;
+        }
+
+        outYaml << YAML::EndMap << YAML::EndMap;
+    }
+
+    RIO_LOG("%s\n", mInstance->currentFilePath.c_str());
+
+    rio::FileDevice *fileDevice = rio::FileDeviceMgr::instance()->getNativeFileDevice();
+    rio::FileHandle fileHandle;
+    fileDevice->open(&fileHandle, mInstance->currentFilePath, rio::FileDevice::FILE_OPEN_FLAG_WRITE);
+    fileDevice->write(&fileHandle, (u8 *)(outYaml.c_str()), strlen(outYaml.c_str()));
+    fileDevice->close(&fileHandle);
+
+    return true;
+}
+
+void NodeMgr::Start()
+{
+    rio::PrimitiveRenderer::instance()->begin();
+
+    for (auto &node : mNodes)
+    {
+        for (auto &property : node->properties)
+        {
+            property->Start();
+        }
+    }
+
+    rio::PrimitiveRenderer::instance()->end();
+}
+
 void NodeMgr::Update()
 {
+    rio::PrimitiveRenderer::instance()->begin();
+
     for (auto &node : mNodes)
     {
         for (auto &property : node->properties)
@@ -166,4 +233,6 @@ void NodeMgr::Update()
             property->Update();
         }
     }
+
+    rio::PrimitiveRenderer::instance()->end();
 }

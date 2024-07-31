@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string>
 #include <nn/ffl.h>
+#include <filedevice/rio_FileDeviceMgr.h>
 
 class FFLMgr
 {
@@ -16,6 +17,10 @@ public:
     void InitializeFFL();
     void CreateRandomMiddleDB(u16 pMiiLength);
 
+    FFLStoreData GetStoreDataFromFile(std::string fileName, rio::RawErrorCode *errCode);
+
+    FFLResolution GetGlobalResolution() { return mResolution; };
+
     FFLMiddleDB mMiddleDB;
 
 private:
@@ -24,6 +29,8 @@ private:
     bool mInitialized;
 
     void *miiBufferSize;
+
+    FFLResolution mResolution;
 };
 
 #endif // FFLHELPER_H

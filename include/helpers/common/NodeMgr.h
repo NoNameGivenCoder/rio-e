@@ -8,6 +8,15 @@
 #include <memory>
 #include <string>
 
+#include <unordered_map>
+#include <functional>
+
+#include <helpers/properties/audio/AudioProperty.h>
+#include <helpers/properties/map/CameraProperty.h>
+#include <helpers/properties/gfx/PrimitiveProperty.h>
+#include <helpers/properties/MiiHeadProperty.h>
+#include <helpers/properties/examples/ExampleEnumProperty.h>
+
 class NodeMgr
 {
 public:
@@ -17,7 +26,8 @@ public:
     static int AddNode(std::shared_ptr<Node> pNode);
     static bool DeleteNode(const int pIndex);
 
-    static bool LoadFromFile(std::string fileName);
+    bool LoadFromFile(std::string fileName);
+    bool SaveToFile();
 
     std::vector<std::shared_ptr<Node>> mNodes;
 
@@ -26,32 +36,31 @@ public:
     static inline void ClearAllNodes() { return mInstance->mNodes.clear(); };
 
     void Update();
+    void Start();
 
-    Node *GetNodeByKey(const char *pKey);
+    std::shared_ptr<Node> GetNodeByKey(const char *pKey);
     Node *GetNodeByID(const int ID);
     Node *GetNodeByIndex(const int pIndex);
 
-    template <typename T>
-    std::vector<T *> GetNodesByType()
-    {
-        std::vector<T *> result;
-
-        for (const auto &node : mNodes)
-        {
-            if (T *typedNode = dynamic_cast<T *>(node.get()))
-            {
-                // RIO_LOG("%s\n", node.get()->nodeKey);
-                result.push_back(typedNode);
-            }
-        }
-
-        return result;
-    }
-
 private:
     static NodeMgr *mInstance;
+    std::string currentFilePath = "/";
 
     bool mInitialized = false;
+
+    using PropertyCreateFunc = std::function<std::unique_ptr<Property>(std::shared_ptr<Node>)>;
+
+    std::unordered_map<std::string, PropertyCreateFunc> mPropertyFactory = {
+        {"Audio", [](std::shared_ptr<Node> node)
+         { return std::make_unique<AudioProperty>(node); }},
+        {"Camera", [](std::shared_ptr<Node> node)
+         { return std::make_unique<CameraProperty>(node); }},
+        {"Primitive", [](std::shared_ptr<Node> node)
+         { return std::make_unique<PrimitiveProperty>(node); }},
+        {"MiiHead", [](std::shared_ptr<Node> node)
+         { return std::make_unique<MiiHeadProperty>(node); }},
+        {"ExampleEnum", [](std::shared_ptr<Node> node)
+         { return std::make_unique<ExampleEnumProperty>(node); }}};
 };
 
 #endif // COMMONNODEHELPER_H

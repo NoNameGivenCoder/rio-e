@@ -19,35 +19,43 @@ public:
 
     struct AudioPropertyInitArgs
     {
-        std::string audioFile;
+        std::shared_ptr<std::string> audioFile;
         AudioType audioType;
         f32 volume = 1.f;
     };
 
     using Property::Property;
 
-    void Load(YAML::Node node);
-    void Update() override;
+    void Load(YAML::Node node) override;
+    YAML::Node Save() override;
 
-    void Play(const bool loop = false);
+    void Update() override;
+    void Start() override;
+    void CreatePropertiesMenu() override;
+
+    void Play();
     void Stop();
     void SetVolume(const f32 volume);
 
-    inline void SetAudioFile(std::string pAudioFile)
+    void SetAudioFile(std::shared_ptr<std::string> pAudioFile)
     {
         audioFile = pAudioFile;
         LoadAudio();
     };
 
-    void CreatePropertiesMenu();
+    inline void SetLoop(const bool pLoop) { loop = pLoop; };
 
     // Properties
-    std::string audioFile;
-    AudioType audioType;
-    f32 volume;
 
 private:
     void LoadAudio();
+
+    std::shared_ptr<std::string> audioFile = std::make_shared<std::string>("");
+    std::shared_ptr<std::string> audioKey = std::make_shared<std::string>("");
+    AudioType audioType = AUDIO_PROPERTY_BGM;
+    f32 volume = 1.0f;
+    bool audioLoaded = false;
+    bool loop = 0;
 };
 
 #endif // AUDIOHELPER_H

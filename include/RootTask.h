@@ -1,5 +1,3 @@
-#include <Shader.h>
-
 #include <gfx/rio_Camera.h>
 #include <controller/rio_Controller.h>
 #include <task/rio_Task.h>
@@ -32,9 +30,7 @@ private:
 
 private:
     bool mInitialized;
-    Shader mShader;
     float FOV;
-    Model *mpModel;
     ImGuiIO *p_io;
 
     bool isDebuggingOpen;

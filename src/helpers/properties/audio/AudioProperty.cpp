@@ -6,66 +6,73 @@
 #include <helpers/properties/audio/AudioProperty.h>
 #include <helpers/common/Node.h>
 #include <helpers/common/NodeMgr.h>
+#include <helpers/properties/map/CameraProperty.h>
 #include <yaml-cpp/yaml.h>
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
+
+YAML::Node AudioProperty::Save()
+{
+    YAML::Node node;
+
+    node["Audio"]["audioFile"] = audioFile->c_str();
+    node["Audio"]["audioKey"] = audioKey->c_str();
+    node["Audio"]["audioType"] = (int)(audioType);
+    node["Audio"]["loop"] = (int)(loop);
+    node["Audio"]["volume"] = (float)(volume);
+    node["Audio"]["propertyId"] = (int)(Property::GetPropertyID());
+
+    return node;
+}
 
 void AudioProperty::Load(YAML::Node node)
 {
-    if (!node["audioFile"])
-    {
-        RIO_LOG("[AUDIO] Error: Missing 'audioFile' in YAML node.\n");
-        return;
-    }
-    audioFile = node["audioFile"].as<std::string>();
-
-    if (!node["audioType"])
-    {
-        RIO_LOG("[AUDIO] Error: Missing 'audioType' in YAML node.\n");
-        return;
-    }
+    audioFile = std::make_shared<std::string>(node["audioFile"].as<std::string>());
+    audioKey = std::make_shared<std::string>(node["audioKey"].as<std::string>());
     audioType = static_cast<AudioProperty::AudioType>(node["audioType"].as<int>());
-
-    if (!node["volume"])
-    {
-        RIO_LOG("[AUDIO] Error: Missing 'volume' in YAML node.\n");
-        return;
-    }
     volume = node["volume"].as<f32>();
+    loop = node["loop"].as<int>();
 
-    if (!node["propertyId"])
-    {
-        RIO_LOG("[AUDIO] Error: Missing 'propertyId' in YAML node.\n");
-        return;
-    }
     Property::SetPropertyID(node["propertyId"].as<int>());
     Property::SetLoggingString("AUDIO");
 
-    return LoadAudio();
+    rio::AudioMgr::instance()->setListenerMaxDistance(5.f);
+}
+
+void AudioProperty::Start()
+{
+    LoadAudio();
+    mInitialized = true;
 }
 
 void AudioProperty::LoadAudio()
 {
-    RIO_LOG("[AUDIO] Loading %s..\n", audioFile.c_str());
+    int propertyId = Property::GetPropertyID();
+
+    RIO_LOG("[AUDIO] Loading %s..\n", audioFile->c_str());
 
     switch (audioType)
     {
     default:
     case AUDIO_PROPERTY_BGM:
     {
-        bool loadBgmResult = rio::AudioMgr::instance()->loadBgm(audioFile.c_str(), audioFile.c_str());
-        RIO_ASSERT(loadBgmResult);
+        audioLoaded = rio::AudioMgr::instance()->loadBgm(audioFile->c_str(), audioKey->c_str());
+        RIO_ASSERT(audioLoaded);
         break;
     }
 
     case AUDIO_PROPERTY_SFX:
     {
-        bool loadSfxResult = rio::AudioMgr::instance()->loadSfx(audioFile.c_str(), audioFile.c_str());
-        RIO_ASSERT(loadSfxResult);
+        audioLoaded = rio::AudioMgr::instance()->loadSfx(audioFile->c_str(), audioKey->c_str());
+        RIO_ASSERT(audioLoaded);
         break;
     }
     }
 
-    RIO_LOG("[AUDIO] Loaded %s using key: %s.\n", audioFile.c_str(), audioFile.c_str());
+    if (audioLoaded)
+        RIO_LOG("[AUDIO] Loaded successfully.\n");
+
+    RIO_LOG("[AUDIO] Loaded %s using key: %s.\n", audioFile->c_str(), audioKey->c_str());
 }
 
 void AudioProperty::CreatePropertiesMenu()
@@ -74,35 +81,37 @@ void AudioProperty::CreatePropertiesMenu()
 
     std::string label = "Audio (" + std::to_string(propertyId) + ")";
 
-    if (ImGui::CollapsingHeader(label.c_str()))
+    if (ImGui::TreeNode(label.c_str()))
     {
         std::string audioLabel = "volume_" + propertyId;
         std::string playLabel = "Play " + propertyId;
         std::string stopLabel = "Stop " + propertyId;
+        std::string textLabel = "audioFile_" + propertyId;
+
+        if (ImGui::InputText(textLabel.c_str(), audioFile.get()))
+            LoadAudio();
 
         if (ImGui::DragFloat(audioLabel.c_str(), &volume, 0.01f, 0.f, 1.f))
             SetVolume(volume);
-
-        if (ImGui::Button(playLabel.c_str(), {ImGui::GetItemRectSize().x, 22}))
-            Play();
-
-        if (ImGui::Button(stopLabel.c_str(), {ImGui::GetItemRectSize().x, 22}))
-            Stop();
     }
 }
 
 void AudioProperty::Update()
 {
-    // rio::AudioMgr::instance()->setListener(camera->mCamera.pos(), camera->mCamera.at(), camera->mCamera.getUp());
 }
 
-void AudioProperty::Play(const bool loop)
+void AudioProperty::Play()
 {
+    if (!audioLoaded)
+        return;
+
+    int propertyId = Property::GetPropertyID();
+
     switch (audioType)
     {
     case AUDIO_PROPERTY_BGM:
     {
-        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioFile.c_str());
+        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioKey->c_str());
         bgm->setVolume(volume);
         bgm->play(loop);
         break;
@@ -110,52 +119,62 @@ void AudioProperty::Play(const bool loop)
 
     case AUDIO_PROPERTY_SFX:
     {
-        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioFile.c_str());
+        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioKey->c_str());
         sfx->setVolume(volume);
-        sfx->play(loop);
+        sfx->play(Property::GetParentNode().lock()->GetPosition(), loop);
         break;
     }
     }
 
-    RIO_LOG("[AUDIO] Played %s.\n", audioFile.c_str());
+    RIO_LOG("[AUDIO] Played %s.\n", audioKey->c_str());
 }
 
 void AudioProperty::Stop()
 {
+    if (!audioLoaded)
+        return;
+
+    int propertyId = Property::GetPropertyID();
+
     switch (audioType)
     {
     case AUDIO_PROPERTY_BGM:
     {
-        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioFile.c_str());
+        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioKey->c_str());
         bgm->stop();
         break;
     }
 
     case AUDIO_PROPERTY_SFX:
     {
-        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioFile.c_str());
+        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioKey->c_str());
         sfx->stop(0);
         break;
     }
     }
 
-    RIO_LOG("[AUDIO] Stopped %s.\n", audioFile.c_str());
+    RIO_LOG("[AUDIO] Stopped %s.\n", audioKey->c_str());
 }
 
 void AudioProperty::SetVolume(const f32 volume)
 {
+    if (!audioLoaded)
+        return;
+
+    int propertyId = Property::GetPropertyID();
+
     switch (audioType)
     {
     case AUDIO_PROPERTY_BGM:
     {
-        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioFile.c_str());
+        rio::AudioBgm *bgm = rio::AudioMgr::instance()->getBgm(audioKey->c_str());
         bgm->setVolume(volume);
         break;
     }
 
     case AUDIO_PROPERTY_SFX:
     {
-        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioFile.c_str());
+        rio::AudioSfx *sfx = rio::AudioMgr::instance()->getSfx(audioKey->c_str());
         sfx->setVolume(volume);
         break;
     }

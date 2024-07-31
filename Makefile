@@ -53,19 +53,19 @@ $(info $(LDFLAGS))
 
 # macOS (doesn't support cross compiling tho)
 ifeq ($(shell uname), Darwin)
-    LDFLAGS += -framework OpenGL -framework Foundation -framework CoreGraphics -framework AppKit -framework IOKit
-    EXEC := ffl_testing_2_debug_apple64
-    # clip control is for opengl 4.5 and later and macos only supports 4.1
-    DEFS += -DRIO_NO_CLIP_CONTROL
+	LDFLAGS += -framework OpenGL -framework Foundation -framework CoreGraphics -framework AppKit -framework IOKit
+	EXEC := ffl_testing_2_debug_apple64
+	# clip control is for opengl 4.5 and later and macos only supports 4.1
+	DEFS += -DRIO_NO_CLIP_CONTROL
 endif
 # mingw
 # usually these ldflags are added by pkg-config but in this case they weren't
 ifeq ($(OS), Windows_NT)
-    LDFLAGS += -lopengl32 -lws2_32
+	LDFLAGS += -lopengl32 -lws2_32
 # or try to find mingw32 in the CXX
 else ifneq (,$(findstring mingw32, $(CXX)))
-    # pkg-config should include opengl32 but not socket stuff
-    LDFLAGS += -lws2_32
+	# pkg-config should include opengl32 but not socket stuff
+	LDFLAGS += -lws2_32
 endif
 
 # --- CXXFLAGS and source
@@ -87,7 +87,7 @@ YAML_PARSER_SRC := $(shell find ../yaml-cpp-0.8.0/src -name '*.c' -o -name '*.cp
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/properties/Property.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/helpers/model/LightNode.cpp src/Model.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/ui/editor/menu/MainMenuBar.cpp src/helpers/properties/Property.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/helpers/model/LightNode.cpp src/Model.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp ../imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)
@@ -126,6 +126,10 @@ $(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ)
 # Clean up
 clean:
 	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ) $(EXEC) src/Shader*.o ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
+
+# Clean within the project folder
+cleanin:
+	rm -f $(OBJ) $(EXEC) src/Shader*.o
 
 # Phony targets
 .PHONY: all clean no_clip_control
