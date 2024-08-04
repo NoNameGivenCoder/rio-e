@@ -18,6 +18,8 @@
 #include <filedevice/rio_FileDeviceMgr.h>
 #include <yaml-cpp/yaml.h>
 
+#include <helpers/editor/EditorMgr.h>
+
 NodeMgr *NodeMgr::mInstance = nullptr;
 
 bool NodeMgr::createSingleton()
@@ -224,15 +226,13 @@ void NodeMgr::Start()
 
 void NodeMgr::Update()
 {
-    rio::PrimitiveRenderer::instance()->begin();
-
     for (auto &node : mNodes)
     {
         for (auto &property : node->properties)
         {
+            EditorMgr::instance()->BindRenderBuffer();
             property->Update();
+            EditorMgr::instance()->UnbindRenderBuffer();
         }
     }
-
-    rio::PrimitiveRenderer::instance()->end();
 }

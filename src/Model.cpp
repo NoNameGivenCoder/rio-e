@@ -43,8 +43,6 @@ void Model::enableSpecialDraw()
 
 void Model::drawOpa(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx)
 {
-    EditorMgr::instance()->renderBuffer.bind();
-
     setViewUniform_(mMtxSRT, view_mtx, proj_mtx);
 
     if (mIsEnableSpecialDraw)
@@ -55,8 +53,6 @@ void Model::drawOpa(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj
 
 void Model::drawXlu(const rio::BaseMtx34f &view_mtx, const rio::BaseMtx44f &proj_mtx)
 {
-    EditorMgr::instance()->renderBuffer.bind();
-
     setViewUniform_(mMtxSRT, view_mtx, proj_mtx);
 
     if (mIsEnableSpecialDraw)

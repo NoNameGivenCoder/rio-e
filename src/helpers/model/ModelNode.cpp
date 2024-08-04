@@ -4,8 +4,6 @@
 #include <helpers/model/ModelNode.h>
 #include <helpers/common/NodeMgr.h>
 
-#include <helpers/model/LightNode.h>
-
 #include <vector>
 #include <memory>
 
@@ -21,11 +19,11 @@ ModelNode::ModelNode(rio::mdl::res::Model *res_mdl, const char *view_block_name,
     mpViewUniformBlock = new rio::UniformBlock();
     mpViewUniformBlock->setData(&sViewBlock, sizeof(ModelNode::ViewBlock));
 
-    LightNode *mLight = NodeMgr::instance()->GetNodesByType<LightNode>().at(0);
+    mCameraProperty = NodeMgr::instance()->GetNodeByKey("mapCamera")->GetProperty<CameraProperty>().at(0);
 
-    rio::Color4f lightColor = mLight->GetLightColor();
+    rio::Color4f lightColor = {1, 1, 1, 1};
     sLightBlock.light_color = {lightColor.r, lightColor.g, lightColor.b};
-    sLightBlock.light_pos = mLight->GetPosition();
+    sLightBlock.light_pos = {0, 0, 0};
 
     mpLightUniformBlock = new rio::UniformBlock();
     mpLightUniformBlock->setDataInvalidate(&sLightBlock, sizeof(ModelNode::LightBlock));
@@ -82,29 +80,25 @@ ModelNode::~ModelNode()
 
 void ModelNode::Draw() const
 {
-    CameraNode *mCamera = nullptr;
-
-    if (!mCamera)
+    if (!mCameraProperty)
         return;
 
     rio::Matrix34f view_mtx;
     rio::Matrix44f view_proj_mtx;
     rio::RenderState render_state;
 
-    mCamera->mCamera.getMatrix(&view_mtx);
+    mCameraProperty->GetCamera().getMatrix(&view_mtx);
 
     // Calculate view-projection matrix (Projection x View)
-    view_proj_mtx.setMul(mCamera->mProjMtx, view_mtx);
+    view_proj_mtx.setMul(mCameraProperty->GetProjectionMatrix(), view_mtx);
 
-    sViewBlock.view_pos = mCamera->GetPosition();
+    sViewBlock.view_pos = mCameraProperty->GetParentNode().lock()->GetPosition();
     sViewBlock.view_proj_mtx = view_proj_mtx;
 
     render_state.apply();
 
-    LightNode *mLight = NodeMgr::instance()->GetNodesByType<LightNode>().at(0);
-
-    sLightBlock.light_color = {mLight->GetLightColor().r, mLight->GetLightColor().g, mLight->GetLightColor().b};
-    sLightBlock.light_pos = mLight->GetPosition();
+    sLightBlock.light_color = {1, 1, 1};
+    sLightBlock.light_pos = {0, 0, 0};
 
     mpViewUniformBlock->setSubDataInvalidate(&sViewBlock, 0, sizeof(ModelNode::ViewBlock));
     mpLightUniformBlock->setSubDataInvalidate(&sLightBlock, 0, sizeof(ModelNode::LightBlock));

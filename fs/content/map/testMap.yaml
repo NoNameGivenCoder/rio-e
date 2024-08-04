@@ -28,18 +28,18 @@ nodes:
                 z: 0
             rotation:
                 x: 0
-                y: 0
-                z: 0
+                y: 124
+                z: 12
             scale:
                 x: 1
                 y: 1
                 z: 1
         properties:
             Audio:
-                audioFile: MAIN_THEME_DAY.mp3
+                audioFile: MYSTIC_RUIN.mp3
                 audioKey: MainThemeBgm
                 audioType: 0
-                loop: 1
+                loop: 0
                 volume: 1
                 propertyId: 0
     3:
@@ -59,11 +59,25 @@ nodes:
                 z: 1
         properties:
             MiiHead:
-                propertyId: 0
                 miiDataFile: Yuji.ffsd
-            ExampleEnum:
-                propertyId: 1
-                exampleEnum: 0
-            ExampleEnum:
-                propertyId: 2
-                exampleEnum: 0
+                propertyId: 0
+    4:
+        name: TestMesh
+        transform:
+            position:
+                x: 8
+                y: 8
+                z: 8
+            rotation:
+                x: 12
+                y: 213
+                z: 5
+            scale:
+                x: 1
+                y: 1
+                z: 1
+        properties:
+            Mesh:
+                meshFileName: base/SampleCube
+                meshKey: cube
+                propertyId: 0

@@ -23,6 +23,7 @@
 #include <helpers/common/FFLMgr.h>
 #include <helpers/editor/EditorMgr.h>
 #include <filesystem>
+#include <helpers/model/ModelNode.h>
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -45,6 +46,16 @@ void RootTask::prepare_()
     NodeMgr::instance()->LoadFromFile("testMap.yaml");
     NodeMgr::instance()->Start();
 
+    // rio::mdl::res::Model *model = rio::mdl::res::ModelCacher::instance()->loadModel("nsmbw_coin", "coin");
+
+    // mModelNode = new ModelNode(model, "cViewBlock", "cLightBlock", "cModelBlock");
+
+    rio::Matrix34f matrix;
+
+    // matrix.makeSRT({1, 1, 1}, {0, 0, 0}, {8, 8, 8});
+
+    // mModelNode->setModelWorldMtx(matrix);
+
     mInitialized = true;
 }
 
@@ -53,7 +64,11 @@ void RootTask::calc_()
     if (!mInitialized)
         return;
 
+    EditorMgr::instance()->Update();
     NodeMgr::instance()->Update();
+    // EditorMgr::instance()->BindRenderBuffer();
+    //  mModelNode->Draw();
+    // EditorMgr::instance()->UnbindRenderBuffer();
     EditorMgr::instance()->CreateEditorUI();
 }
 

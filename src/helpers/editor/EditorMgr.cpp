@@ -11,6 +11,7 @@
 #include <iostream>
 #include <gpu/rio_RenderBuffer.h>
 #include <misc/rio_MemUtil.h>
+#include <filesystem>
 
 EditorMgr *EditorMgr::mInstance = nullptr;
 
@@ -29,6 +30,9 @@ bool EditorMgr::createSingleton()
         return false;
     }
 
+    mInstance->mFileDevice = rio::FileDeviceMgr::instance()->getMainFileDevice();
+    mInstance->mTextureFolderPath = mInstance->mFileDevice->getNativePath("textures");
+
     return true;
 }
 
@@ -38,10 +42,7 @@ bool EditorMgr::destorySingleton()
         return false;
 
     delete mInstance->mpColorTexture;
-    delete mInstance->mpItemIDTexture;
     delete mInstance->mpDepthTexture;
-    delete mInstance->mpItemIDReadBuffer;
-    delete mInstance->mpItemIDClearBuffer;
 
     delete mInstance;
     mInstance = nullptr;
@@ -49,31 +50,29 @@ bool EditorMgr::destorySingleton()
     return true;
 }
 
-void EditorMgr::SetupFrameBuffer()
+void EditorMgr::Update()
 {
     rio::Window *window = rio::Window::instance();
-
     s32 width, height;
 
     width = window->getWidth();
     height = window->getHeight();
 
-    mpColorTexture = new rio::Texture2D(rio::TEXTURE_FORMAT_R8_G8_B8_A8_UNORM, width, height, 1);
-    mpItemIDTexture = new rio::Texture2D(rio::TEXTURE_FORMAT_R32_UINT, width, height, 1);
-    mpDepthTexture = new rio::Texture2D(rio::DEPTH_TEXTURE_FORMAT_R32_FLOAT, width, height, 1);
-
-    u32 size = width * height * sizeof(u32);
-    mpItemIDReadBuffer = new u8[size];
-    mpItemIDClearBuffer = new u8[size];
-
-    rio::MemUtil::set(mpItemIDReadBuffer, 0xFF, size);
-    RIO_ASSERT(size == mpItemIDTexture->getNativeTexture().surface.imageSize);
-    rio::MemUtil::set(mpItemIDClearBuffer, 0xFF, size);
-
     mRenderBuffer.setSize(width, height);
+    mRenderBuffer.clear(rio::RenderBuffer::CLEAR_FLAG_COLOR_DEPTH, {0.2f, 0.3f, 0.3f, 0.0f});
+}
+
+void EditorMgr::SetupFrameBuffer()
+{
+    mpColorTexture = new rio::Texture2D(rio::TEXTURE_FORMAT_R8_G8_B8_A8_UNORM, 1280, 720, 1);
+    mpDepthTexture = new rio::Texture2D(rio::DEPTH_TEXTURE_FORMAT_R32_FLOAT, 1280, 720, 1);
+
+    mRenderBuffer.setSize(1280, 720);
     mColorTarget.linkTexture2D(*mpColorTexture);
     mDepthTarget.linkTexture2D(*mpDepthTexture);
-    mItemIDTarget.linkTexture2D(*mpItemIDTexture);
+
+    mRenderBuffer.setRenderTargetColor(&mColorTarget);
+    mRenderBuffer.setRenderTargetDepth(&mDepthTarget);
 
     mRenderBuffer.clear(rio::RenderBuffer::CLEAR_FLAG_DEPTH);
 
@@ -89,7 +88,7 @@ void EditorMgr::BindRenderBuffer()
     width = window->getWidth();
     height = window->getHeight();
 
-    mRenderBuffer.setSize(width, height);
+    mRenderBuffer.setSize(1280, 720);
 
     mRenderBuffer.setRenderTargetColorNull(2);
     mRenderBuffer.bind();
@@ -102,11 +101,57 @@ void EditorMgr::UnbindRenderBuffer()
 
     rio::Window::instance()->makeContextCurrent();
 
-    u32 width = rio::Window::instance()->getWidth();
-    u32 height = rio::Window::instance()->getHeight();
+    rio::Graphics::setViewport(0, 0, 1280, 720);
+    rio::Graphics::setScissor(0, 0, 1280, 720);
+}
 
-    rio::Graphics::setViewport(0, 0, width, height);
-    rio::Graphics::setScissor(0, 0, width, height);
+void EditorMgr::UpdateTexturesDirCache()
+{
+    std::filesystem::file_time_type currentFileWriteTime = std::filesystem::last_write_time(mTextureFolderPath);
+
+    if (currentFileWriteTime != mTexturesLastWriteTime)
+    {
+        mTexturesLastWriteTime = currentFileWriteTime;
+        mTextureCachedContents.clear();
+        mTextures.clear();
+
+        for (const auto &fileEntry : std::filesystem::directory_iterator(mTextureFolderPath))
+        {
+            // We're only loading .rtx, since that is the file format for pc.
+            if (fileEntry.path().string().find(".rtx") == std::string::npos)
+                continue;
+
+            RIO_LOG("[EDITORMGR] Loading texture %s..\n", fileEntry.path().filename().c_str());
+
+            std::ifstream file(fileEntry.path(), std::ios::binary);
+
+            if (!file)
+            {
+                RIO_LOG("[EDITORMGR] Failed to open texture file: %s\n", fileEntry.path().filename().c_str());
+                continue;
+            }
+
+            u8 *fileBuffer = new u8[fileEntry.file_size()];
+
+            file.read(reinterpret_cast<char *>(fileBuffer), fileEntry.file_size());
+            file.close();
+
+            if (!file)
+            {
+                RIO_LOG("[EDITORMGR] Failed to read texture file: %s\n", fileEntry.path().filename().c_str());
+                delete[] fileBuffer;
+                continue;
+            }
+
+            // Create rio::Texture2D object
+            std::unique_ptr<rio::Texture2D> texture = std::make_unique<rio::Texture2D>(fileBuffer, fileEntry.file_size());
+
+            mTextures[fileEntry.path().string()] = std::move(texture);
+            mTextureCachedContents.push_back(fileEntry.path());
+
+            delete[] fileBuffer;
+        }
+    }
 }
 
 void EditorMgr::CreateEditorUI()
@@ -147,6 +192,12 @@ void EditorMgr::CreateEditorUI()
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Window"))
+            {
+                ImGui::MenuItem(mTextureWindowName.c_str(), NULL, &mTextureWindowEnabled);
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMainMenuBar();
         }
 
@@ -183,6 +234,22 @@ void EditorMgr::CreateEditorUI()
                     bool isNodeSelected = (EditorMgr::instance()->selectedNode == node);
 
                     if (isNodeSelected)
+                    {
+                        BindRenderBuffer();
+                        rio::PrimitiveRenderer::instance()->begin();
+
+                        rio::PrimitiveRenderer::CubeArg cubeArg;
+                        cubeArg.setCenter(selectedNode->GetPosition());
+                        cubeArg.setSize(selectedNode->GetScale());
+                        cubeArg.setColor({1, 1, 1, 1});
+
+                        rio::PrimitiveRenderer::instance()->drawWireCube(cubeArg);
+
+                        rio::PrimitiveRenderer::instance()->end();
+                        UnbindRenderBuffer();
+                    }
+
+                    if (isNodeSelected)
                         ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
                     if (ImGui::Button(node->nodeKey.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 22)))
@@ -198,13 +265,132 @@ void EditorMgr::CreateEditorUI()
             ImGui::End();
         }
 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {0, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         if (ImGui::Begin("Task View"))
         {
-            // Get the size of the window
-            ImVec2 windowSize = ImGui::GetContentRegionAvail();
+            // Desired aspect ratio
+            const float desiredAspectRatio = 1280.0f / 720.0f;
+
+            // Get available space
+            ImVec2 availSize = ImGui::GetContentRegionAvail();
+
+            // Calculate the new size keeping the aspect ratio
+            float newWidth = availSize.x;
+            float newHeight = newWidth / desiredAspectRatio;
+
+            if (newHeight > availSize.y)
+            {
+                newHeight = availSize.y;
+                newWidth = newHeight * desiredAspectRatio;
+            }
+
+            // Center the image
+            ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
+
+            ImGui::SetCursorPos(centerPos);
 
             // Display the texture
-            ImGui::Image((void *)mpColorTexture->getNativeTextureHandle(), {mRenderBuffer.getSize().x, mRenderBuffer.getSize().y}, ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void *)mpColorTexture->getNativeTextureHandle(), ImVec2(newWidth, newHeight), ImVec2(0, 0), ImVec2(1, 1));
+
+            ImGui::End();
+        }
+        ImGui::PopStyleVar(4);
+
+        if (mTextureWindowEnabled)
+        {
+            UpdateTexturesDirCache();
+
+            if (ImGui::Begin(mTextureWindowName.c_str()))
+            {
+                if (ImGui::BeginChild("textures", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+                {
+                    for (const auto &textureFilePath : mTextureCachedContents)
+                    {
+                        bool isTextureSelected = mTextureSelected == textureFilePath;
+
+                        if (isTextureSelected)
+                            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+
+                        if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 25}))
+                        {
+                            mTextureSelected = textureFilePath;
+                        }
+
+                        if (isTextureSelected)
+                            ImGui::PopStyleColor(1);
+                    }
+                    ImGui::EndChild();
+                }
+                ImGui::End();
+            }
+
+            if (ImGui::Begin("Texture"))
+            {
+                if (!mTextureSelected.empty())
+                {
+                    auto textureIter = mTextures.find(mTextureSelected);
+
+                    if (textureIter == mTextures.end())
+                    {
+                        RIO_LOG("[EDITORMGR] Texture not found: %s\n", mTextureSelected.c_str());
+                        return;
+                    }
+
+                    auto &texture = textureIter->second;
+
+                    if (!texture || !texture->getNativeTextureHandle())
+                    {
+                        RIO_LOG("[EDITORMGR] Error loading %s.", mTextureSelected.c_str());
+                        return;
+                    }
+
+                    if (ImGui::BeginChild("texture_info", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / 3}))
+                    {
+                        ImGui::Text("%s", mTextureSelected.filename().c_str());
+                        ImGui::Text("Size: %d x %d", texture->getWidth(), texture->getHeight());
+                        ImGui::Text("Mipmap Count: %d", texture->getNumMips());
+                        ImGui::Text("Comp Map: %d", texture->getCompMap());
+                        rio::TextureFormat texFormat = texture->getTextureFormat();
+                        std::string stringFormat = mTextureFormatMap.find(texFormat)->second;
+                        ImGui::Text("Texture Format: %s", stringFormat.c_str());
+
+                        ImGui::EndChild();
+                    }
+                    ImGui::PopStyleColor(1);
+
+                    if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+                    {
+                        // Desired aspect ratio
+                        const float desiredAspectRatio = 200.0f / 200.0f;
+
+                        // Get available space
+                        ImVec2 availSize = ImGui::GetContentRegionAvail();
+
+                        // Calculate the new size keeping the aspect ratio
+                        float newWidth = availSize.x;
+                        float newHeight = newWidth / desiredAspectRatio;
+
+                        if (newHeight > availSize.y)
+                        {
+                            newHeight = availSize.y;
+                            newWidth = newHeight * desiredAspectRatio;
+                        }
+
+                        // Center the image
+                        ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
+
+                        ImGui::SetCursorPos(centerPos);
+                        ImGui::Image(reinterpret_cast<void *>(texture->getNativeTextureHandle()), {newHeight, newHeight});
+
+                        ImGui::EndChild();
+                    }
+                }
+
+                ImGui::End();
+            }
 
             ImGui::End();
         }

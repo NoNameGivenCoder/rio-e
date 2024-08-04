@@ -84,7 +84,6 @@ void MiiHeadProperty::Start()
 
 void MiiHeadProperty::Update()
 {
-    EditorMgr::instance()->BindRenderBuffer();
     rio::BaseMtx34f viewMtx;
     rio::BaseMtx44f projMtx;
     rio::Mtx34f nodeMtx;
@@ -98,8 +97,6 @@ void MiiHeadProperty::Update()
 
     DrawOpa();
     DrawXlu();
-
-    EditorMgr::instance()->UnbindRenderBuffer();
 }
 
 void MiiHeadProperty::DrawOpa()

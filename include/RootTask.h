@@ -4,7 +4,6 @@
 #include <nn/ffl/FFLMiddleDB.h>
 #include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
-
 #include <filedevice/rio_FileDeviceMgr.h>
 
 class Model;
@@ -32,6 +31,4 @@ private:
     bool mInitialized;
     float FOV;
     ImGuiIO *p_io;
-
-    bool isDebuggingOpen;
 };

@@ -11,10 +11,11 @@
 #include <unordered_map>
 #include <functional>
 
+#include <helpers/properties/MiiHeadProperty.h>
 #include <helpers/properties/audio/AudioProperty.h>
 #include <helpers/properties/map/CameraProperty.h>
 #include <helpers/properties/gfx/PrimitiveProperty.h>
-#include <helpers/properties/MiiHeadProperty.h>
+#include <helpers/properties/gfx/MeshProperty.h>
 #include <helpers/properties/examples/ExampleEnumProperty.h>
 
 class NodeMgr
@@ -60,7 +61,9 @@ private:
         {"MiiHead", [](std::shared_ptr<Node> node)
          { return std::make_unique<MiiHeadProperty>(node); }},
         {"ExampleEnum", [](std::shared_ptr<Node> node)
-         { return std::make_unique<ExampleEnumProperty>(node); }}};
+         { return std::make_unique<ExampleEnumProperty>(node); }},
+        {"Mesh", [](std::shared_ptr<Node> node)
+         { return std::make_unique<MeshProperty>(node); }}};
 };
 
 #endif // COMMONNODEHELPER_H

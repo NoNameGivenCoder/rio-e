@@ -3,6 +3,7 @@
 
 #include <gfx/mdl/rio_Model.h>
 #include <vector>
+#include <helpers/properties/map/CameraProperty.h>
 
 class ModelNode : public rio::mdl::Model
 {
@@ -36,6 +37,7 @@ public:
     void Draw() const;
     static ViewBlock sViewBlock;
     static LightBlock sLightBlock;
+    CameraProperty *mCameraProperty;
 
 private:
     struct ShaderLocation
