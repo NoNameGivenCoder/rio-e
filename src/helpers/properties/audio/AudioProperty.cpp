@@ -78,21 +78,31 @@ void AudioProperty::LoadAudio()
 void AudioProperty::CreatePropertiesMenu()
 {
     int propertyId = Property::GetPropertyID();
+    ImGui::PushID(propertyId);
 
-    std::string label = "Audio (" + std::to_string(propertyId) + ")";
-
-    if (ImGui::TreeNode(label.c_str()))
+    if (ImGui::CollapsingHeader("Audio"))
     {
-        std::string audioLabel = "volume_" + propertyId;
-        std::string playLabel = "Play " + propertyId;
-        std::string stopLabel = "Stop " + propertyId;
-        std::string textLabel = "audioFile_" + propertyId;
+        ImGui::PopID();
 
-        if (ImGui::InputText(textLabel.c_str(), audioFile.get()))
+        std::string volumeID = "volume_" + propertyId;
+        std::string audioFileID = "audioFile_" + propertyId;
+
+        ImGui::Text("Audio File");
+
+        ImGui::PushID(volumeID.c_str());
+
+        if (ImGui::InputText("", audioFile.get()))
             LoadAudio();
 
-        if (ImGui::DragFloat(audioLabel.c_str(), &volume, 0.01f, 0.f, 1.f))
+        ImGui::PopID();
+
+        ImGui::Text("Audio Volume");
+        ImGui::PushID(audioFileID.c_str());
+
+        if (ImGui::DragFloat("", &volume, 0.01f, 0.f, 1.f))
             SetVolume(volume);
+
+        ImGui::PopID();
     }
 }
 

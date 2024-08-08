@@ -4,7 +4,10 @@
 #include <gfx/rio_Window.h>
 #include <controller/rio_Controller.h>
 #include <controller/rio_ControllerMgr.h>
+#include <controller/win/rio_KeyboardMouseDeviceWin.h>
+#include <controller/win/rio_WinControllerWin.h>
 #include <misc/rio_MemUtil.h>
+#include <imgui.h>
 
 #include <helpers/properties/map/CameraProperty.h>
 #include <helpers/properties/Property.h>
@@ -129,7 +132,7 @@ void CameraProperty::Update()
     // Create perspective projection instance
     rio::PerspectiveProjection proj(
         0.1f,
-        100.0f,
+        1000.0f,
         rio::Mathf::deg2rad(fov),
         f32(window->getWidth()) / f32(window->getHeight()));
 
@@ -142,4 +145,42 @@ void CameraProperty::Update()
 
 void CameraProperty::CreatePropertiesMenu()
 {
+    ImGui::PushID(GetPropertyID());
+
+    if (ImGui::CollapsingHeader("Camera"))
+    {
+        ImGui::PopID();
+
+        std::string comboId = "CameraType_" + std::to_string(GetPropertyID());
+        std::string fovId = "FOV_" + std::to_string(GetPropertyID());
+
+        ImGui::Text("FOV");
+        ImGui::PushID(fovId.c_str());
+
+        ImGui::DragFloat("", &fov, 0.1f, 0.0f, 200.f);
+        ImGui::PopID();
+
+        ImGui::Text("Camera Type");
+        ImGui::PushID(comboId.c_str());
+        if (ImGui::BeginCombo("", CameraTypeInfo[(int)(mCameraType)].name))
+        {
+            for (int i = 0; i < 2; ++i)
+            {
+                // Calculate if our selectable should appear as selected.
+                bool isSelected = (mCameraType == (CameraType)(i));
+
+                if (ImGui::Selectable(CameraTypeInfo[i].name, isSelected))
+                {
+                    // Finally, if our selectable is clicked, we change our class member enum to the selected value.
+                    mCameraType = (CameraType)(CameraTypeInfo[i].value);
+                }
+
+                // If our selectable is selected, we set the default focus to it.
+                if (isSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+    }
 }

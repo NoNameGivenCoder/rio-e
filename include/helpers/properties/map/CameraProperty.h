@@ -7,6 +7,7 @@
 #include <gfx/rio_Camera.h>
 #include <helpers/properties/Property.h>
 #include <gfx/rio_Color.h>
+#include <helpers/editor/EditorTypes.h>
 
 class CameraProperty : public Property
 {
@@ -16,6 +17,10 @@ public:
         CAMERA_NODE_FLYCAM = 0,
         CAMERA_NODE_NONE = 1
     };
+
+    EnumInfo CameraTypeInfo[2] = {
+        {"Flycam", CAMERA_NODE_FLYCAM},
+        {"Custom Controlled", CAMERA_NODE_NONE}};
 
     struct CameraPropertyInitArgs
     {

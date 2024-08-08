@@ -111,6 +111,8 @@ void EditorMgr::UpdateTexturesDirCache()
 
     if (currentFileWriteTime != mTexturesLastWriteTime)
     {
+        ConvertDDSToGtx();
+
         mTexturesLastWriteTime = currentFileWriteTime;
         mTextureCachedContents.clear();
         mTextures.clear();
@@ -152,6 +154,23 @@ void EditorMgr::UpdateTexturesDirCache()
             delete[] fileBuffer;
         }
     }
+}
+
+void EditorMgr::ConvertDDSToGtx()
+{
+    DDSHeader ddsHeader;
+
+    rio::FileDevice::LoadArg arg;
+    arg.path = mTextureFolderPath + "/star.dds";
+    u8 *fileBuffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->load(arg);
+
+    bool ddsReadResult = DDSReadFile(fileBuffer, &ddsHeader);
+
+    RIO_LOG("[EDITORMGR] DDS Result: %d\n", (int)(ddsReadResult));
+
+    rio::MemUtil::free(fileBuffer);
+
+    RIO_LOG("%d x %d\n", ddsHeader.width, ddsHeader.height);
 }
 
 void EditorMgr::CreateEditorUI()
@@ -231,7 +250,7 @@ void EditorMgr::CreateEditorUI()
                     if (!node || !node->nodeKey.c_str())
                         continue;
 
-                    bool isNodeSelected = (EditorMgr::instance()->selectedNode == node);
+                    bool isNodeSelected = (EditorMgr::instance()->mSelectedNode == node);
 
                     if (isNodeSelected)
                     {
@@ -239,8 +258,8 @@ void EditorMgr::CreateEditorUI()
                         rio::PrimitiveRenderer::instance()->begin();
 
                         rio::PrimitiveRenderer::CubeArg cubeArg;
-                        cubeArg.setCenter(selectedNode->GetPosition());
-                        cubeArg.setSize(selectedNode->GetScale());
+                        cubeArg.setCenter(mSelectedNode->GetPosition());
+                        cubeArg.setSize(mSelectedNode->GetScale());
                         cubeArg.setColor({1, 1, 1, 1});
 
                         rio::PrimitiveRenderer::instance()->drawWireCube(cubeArg);
@@ -253,7 +272,7 @@ void EditorMgr::CreateEditorUI()
                         ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
                     if (ImGui::Button(node->nodeKey.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 22)))
-                        EditorMgr::instance()->selectedNode = node;
+                        EditorMgr::instance()->mSelectedNode = node;
 
                     if (isNodeSelected)
                         ImGui::PopStyleColor();
@@ -298,6 +317,16 @@ void EditorMgr::CreateEditorUI()
             ImGui::End();
         }
         ImGui::PopStyleVar(4);
+
+        if (ImGui::Begin("Properties"))
+        {
+            if (mSelectedNode)
+            {
+                CreateNodePropertiesMenu();
+
+                ImGui::End();
+            }
+        }
 
         if (mTextureWindowEnabled)
         {
@@ -359,7 +388,6 @@ void EditorMgr::CreateEditorUI()
 
                         ImGui::EndChild();
                     }
-                    ImGui::PopStyleColor(1);
 
                     if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
                     {
@@ -409,7 +437,7 @@ void EditorMgr::CreateNodePropertiesMenu()
 {
     // ImGui::InputText(EditorMgr::instance()->selectedNode->nodeKey, EditorMgr::instance()->selectedNode->nodeKey, sizeof(EditorMgr::instance()->selectedNode->nodeKey));
 
-    std::shared_ptr<Node> selectedNode = EditorMgr::instance()->selectedNode;
+    std::shared_ptr<Node> selectedNode = EditorMgr::instance()->mSelectedNode;
 
     selectedNode->CreateNodeProperties();
 

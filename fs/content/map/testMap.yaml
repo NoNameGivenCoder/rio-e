@@ -3,9 +3,9 @@ nodes:
         name: mapCamera
         transform:
             position:
-                x: 1.05094194
-                y: -0.792241514
-                z: -5.66425848
+                x: -0.106899619
+                y: 0.919701517
+                z: 3.26278138
             rotation:
                 x: 0
                 y: 0
@@ -20,14 +20,14 @@ nodes:
                 cameraFOV: 90
                 propertyId: 0
     2:
-        name: DifferentName
+        name: obj_mus_mystic_ruins
         transform:
             position:
                 x: 0.730000019
                 y: 0
                 z: 0
             rotation:
-                x: 0
+                x: -0.300000012
                 y: 124
                 z: 12
             scale:
@@ -43,7 +43,7 @@ nodes:
                 volume: 1
                 propertyId: 0
     3:
-        name: Node (3)
+        name: obj_test_mii_head
         transform:
             position:
                 x: 0
@@ -62,22 +62,40 @@ nodes:
                 miiDataFile: Yuji.ffsd
                 propertyId: 0
     4:
-        name: TestMesh
+        name: obj_skybox_vr
         transform:
             position:
-                x: 8
-                y: 8
-                z: 8
-            rotation:
-                x: 12
-                y: 213
-                z: 5
-            scale:
                 x: 1
-                y: 1
-                z: 1
+                y: -2.5
+                z: 0
+            rotation:
+                x: 0
+                y: 0
+                z: 0
+            scale:
+                x: -3
+                y: 3
+                z: 3
         properties:
             Mesh:
-                meshFileName: base/SampleCube
-                meshKey: cube
-                propertyId: 0
+                meshFileName: skybox
+                meshKey: skybox
+    5:
+        name: obj_emerald
+        transform:
+            position:
+                x: 1
+                y: -2.5
+                z: 0
+            rotation:
+                x: 0
+                y: 0
+                z: 0
+            scale:
+                x: -3
+                y: 3
+                z: 3
+        properties:
+            Mesh:
+                meshFileName: emerald
+                meshKey: emerald

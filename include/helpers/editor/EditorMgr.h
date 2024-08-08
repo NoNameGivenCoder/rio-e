@@ -11,6 +11,7 @@
 #include <filedevice/rio_FileDeviceMgr.h>
 #include <fstream>
 #include <filesystem>
+#include <ninTexUtils/dds.h>
 
 class EditorMgr
 {
@@ -26,11 +27,12 @@ public:
     void UnbindRenderBuffer();
     void SetupFrameBuffer();
     void Update();
+    void MakeFontIcon(const char *characters);
 
     std::string currentAssetsEditorDirectory = "/";
     std::string assetsWindowString = "Assets (/)";
 
-    std::shared_ptr<Node> selectedNode = nullptr;
+    std::shared_ptr<Node> mSelectedNode = nullptr;
 
     rio::RenderTargetColor mColorTarget;
     rio::RenderTargetDepth mDepthTarget;
@@ -89,4 +91,5 @@ private:
         {rio::TextureFormat::DEPTH_TEXTURE_FORMAT_R32_FLOAT, "R32_FLOAT"}};
 
     void UpdateTexturesDirCache();
+    void ConvertDDSToGtx();
 };

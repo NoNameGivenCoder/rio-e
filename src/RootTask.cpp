@@ -1,29 +1,14 @@
 #include <RootTask.h>
 
-#include <filedevice/rio_FileDeviceMgr.h>
-#include <filedevice/rio_FileDevice.h>
 #include <rio.h>
-#include <controller/rio_Controller.h>
-#include <controller/rio_ControllerMgr.h>
-#include <controller/win/rio_WinControllerWin.h>
 #include <gfx/rio_Projection.h>
 #include <gfx/rio_Window.h>
 #include <string>
 #include <stdio.h>
-#include <gfx/mdl/res/rio_ModelCacher.h>
-#include <gfx/rio_PrimitiveRenderer.h>
-#include <gpu/rio_Drawer.h>
-#include <gpu/rio_RenderState.h>
 
-#include <helpers/model/ModelNode.h>
-#include <helpers/model/LightNode.h>
-
-#include <helpers/ui/editor/menu/MainMenuBar.h>
 #include <helpers/common/NodeMgr.h>
 #include <helpers/common/FFLMgr.h>
 #include <helpers/editor/EditorMgr.h>
-#include <filesystem>
-#include <helpers/model/ModelNode.h>
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -46,16 +31,6 @@ void RootTask::prepare_()
     NodeMgr::instance()->LoadFromFile("testMap.yaml");
     NodeMgr::instance()->Start();
 
-    // rio::mdl::res::Model *model = rio::mdl::res::ModelCacher::instance()->loadModel("nsmbw_coin", "coin");
-
-    // mModelNode = new ModelNode(model, "cViewBlock", "cLightBlock", "cModelBlock");
-
-    rio::Matrix34f matrix;
-
-    // matrix.makeSRT({1, 1, 1}, {0, 0, 0}, {8, 8, 8});
-
-    // mModelNode->setModelWorldMtx(matrix);
-
     mInitialized = true;
 }
 
@@ -66,9 +41,6 @@ void RootTask::calc_()
 
     EditorMgr::instance()->Update();
     NodeMgr::instance()->Update();
-    // EditorMgr::instance()->BindRenderBuffer();
-    //  mModelNode->Draw();
-    // EditorMgr::instance()->UnbindRenderBuffer();
     EditorMgr::instance()->CreateEditorUI();
 }
 

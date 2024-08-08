@@ -40,7 +40,7 @@ void ExampleEnumProperty::CreatePropertiesMenu()
     // Set the ID of the collapsing header.
     ImGui::PushID(GetPropertyID());
 
-    if (ImGui::CollapsingHeader("Example Enum Property"))
+    if (ImGui::CollapsingHeader("Example Enum"))
     {
         ImGui::PopID();
 

@@ -174,7 +174,8 @@ YAML::Node MeshProperty::Save()
 {
     YAML::Node node;
 
-    // Saving into YAML node logic here..
+    node["Mesh"]["meshFileName"] = mMeshFileName;
+    node["Mesh"]["meshKey"] = mMeshKey;
 
     return node;
 }

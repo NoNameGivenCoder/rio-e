@@ -43,14 +43,7 @@ public:
     Node *GetNodeByID(const int ID);
     Node *GetNodeByIndex(const int pIndex);
 
-private:
-    static NodeMgr *mInstance;
-    std::string currentFilePath = "/";
-
-    bool mInitialized = false;
-
     using PropertyCreateFunc = std::function<std::unique_ptr<Property>(std::shared_ptr<Node>)>;
-
     std::unordered_map<std::string, PropertyCreateFunc> mPropertyFactory = {
         {"Audio", [](std::shared_ptr<Node> node)
          { return std::make_unique<AudioProperty>(node); }},
@@ -64,6 +57,12 @@ private:
          { return std::make_unique<ExampleEnumProperty>(node); }},
         {"Mesh", [](std::shared_ptr<Node> node)
          { return std::make_unique<MeshProperty>(node); }}};
+
+private:
+    static NodeMgr *mInstance;
+    std::string currentFilePath = "/";
+
+    bool mInitialized = false;
 };
 
 #endif // COMMONNODEHELPER_H
