@@ -12,6 +12,17 @@
 #include <fstream>
 #include <filesystem>
 #include <ninTexUtils/dds.h>
+#include <ninTexUtils/gfd/gfdStruct.h>
+#include <ninTexUtils/gx2/tcl/addrlib.h>
+#include <ninTexUtils/gx2/gx2Enum.h>
+#include <ninTexUtils/types.h>
+#include <ninTexUtils/gfd/gfdEnum.h>
+#include <ninTexUtils/util.h>
+#include <map>
+#include <array>
+#include <cstdint>
+#include <variant>
+#include <algorithm>
 
 class EditorMgr
 {
@@ -90,6 +101,58 @@ private:
         {rio::TextureFormat::DEPTH_TEXTURE_FORMAT_R16_UNORM, "R16_UNORM"},
         {rio::TextureFormat::DEPTH_TEXTURE_FORMAT_R32_FLOAT, "R32_FLOAT"}};
 
+    using InnerCompMap = std::map<uint16_t, std::vector<std::array<u32, 4>>>;
+    using OuterCompMap = std::map<uint8_t, InnerCompMap>;
+
+    using FourCCMap = std::map<std::string, std::array<uint16_t, 2>>;
+
+    FourCCMap fourCCs = {
+        {"DXT1", {0x031, 0x08}},
+        {"DXT2", {0x032, 0x10}},
+        {"DXT3", {0x032, 0x10}},
+        {"DXT4", {0x033, 0x10}},
+        {"DXT5", {0x033, 0x10}},
+        {"ATI1", {0x034, 0x08}},
+        {"BC4U", {0x034, 0x08}},
+        {"BC4S", {0x234, 0x08}},
+        {"ATI2", {0x035, 0x10}},
+        {"BC5U", {0x035, 0x10}},
+        {"BC5S", {0x235, 0x10}},
+    };
+
+    // Define the outer map
+    OuterCompMap validComps = {
+        {0x08, {
+                   {0x001, {{0x000000ff}}},
+                   {0x002, {{0x0000000f, 0x000000f0}}},
+               }},
+        {0x10, {
+                   {0x007, {{0x000000ff, 0x0000ff00}}},
+                   {0x008, {{0x0000001f, 0x000007e0, 0x0000f800}}},
+                   {0x00a, {{0x0000001f, 0x000003e0, 0x00007c00, 0x00008000}}},
+                   {0x00b, {{0x0000000f, 0x000000f0, 0x00000f00, 0x0000f000}}},
+               }},
+        {0x20, {
+                   {0x019, {{0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000}}},
+                   {0x01a, {{0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000}}},
+               }},
+    };
+
+    template <typename Container>
+    int findIndex(const Container &masks, u32 mask)
+    {
+        auto it = std::find(masks.begin(), masks.end(), mask);
+        return (it != masks.end()) ? std::distance(masks.begin(), it) : -1;
+    }
+
+    void addToBuffer(void *data, size_t size, std::vector<u8> *vect)
+    {
+        size_t oldSize = vect->size();
+        vect->resize(oldSize + sizeof(GFDHeader));
+        std::memcpy(vect->data() + oldSize, data, sizeof(GFDHeader));
+    };
+
     void UpdateTexturesDirCache();
     void ConvertDDSToGtx();
+    void ConvertGtxToRtx();
 };
