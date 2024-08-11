@@ -75,9 +75,7 @@ void MiiHeadProperty::Start()
     FFLInitCharModelGPUStep(&mCharModel);
     rio::Window::instance()->makeContextCurrent();
 
-    auto mainCamera = NodeMgr::instance()->GetNodeByKey("mapCamera");
-
-    mainCameraProperty = mainCamera->GetProperty<CameraProperty>().at(0);
+    mainCameraProperty = NodeMgr::instance()->GetGlobalCamera();
 
     mInitialized = true;
 }

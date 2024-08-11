@@ -49,7 +49,7 @@ void MeshProperty::Start()
     mpViewUniformBlock = new rio::UniformBlock();
     mpViewUniformBlock->setData(&sViewBlock, sizeof(ViewBlock));
 
-    mCameraProperty = NodeMgr::instance()->GetNodeByKey("mapCamera")->GetProperty<CameraProperty>().at(0);
+    mCameraProperty = NodeMgr::instance()->GetGlobalCamera();
 
     rio::Color4f lightColor = {1, 1, 1, 1};
     sLightBlock.light_color = {lightColor.r, lightColor.g, lightColor.b};

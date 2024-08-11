@@ -52,13 +52,9 @@ bool NodeMgr::destorySingleton()
     return true;
 }
 
-bool NodeMgr::DeleteNode(const int pIndex)
+bool NodeMgr::DeleteNode(const int pID)
 {
-    if (pIndex < 0 || pIndex > mInstance->mNodes.size())
-        return false;
-
-    mInstance->mNodes.erase(mInstance->mNodes.begin() + pIndex);
-
+    mInstance->mNodes.erase(pID);
     return true;
 }
 
@@ -67,37 +63,10 @@ int NodeMgr::AddNode(std::shared_ptr<Node> pNode)
     if (!pNode)
         return -1;
 
-    mInstance->mNodes.push_back(pNode);
-    RIO_LOG("[NODEMGR] Added %s to NodeMgr.\n", pNode->nodeKey.c_str());
+    mInstance->mNodes.emplace(pNode->ID, pNode);
+    RIO_LOG("[NODEMGR] Added %s to NodeMgr with ID of %d.\n", pNode->nodeKey.c_str(), pNode->ID);
 
-    return mInstance->mNodes.size() - 1;
-}
-
-Node *NodeMgr::GetNodeByIndex(const int pIndex)
-{
-    return mInstance->mNodes.at(pIndex).get();
-}
-
-std::shared_ptr<Node> NodeMgr::GetNodeByKey(const char *pKey)
-{
-    for (const auto &node : mNodes)
-    {
-        if (strcmp(node.get()->nodeKey.c_str(), pKey) == 0)
-            return node;
-    }
-
-    return nullptr;
-}
-
-Node *NodeMgr::GetNodeByID(const int ID)
-{
-    for (const auto &node : mNodes)
-    {
-        if (node.get()->ID == ID)
-            return node.get();
-    }
-
-    return nullptr;
+    return pNode->ID;
 }
 
 bool NodeMgr::LoadFromFile(std::string fileName)
@@ -130,6 +99,7 @@ bool NodeMgr::LoadFromFile(std::string fileName)
         nodeScale = {node["transform"]["scale"]["x"].as<f32>(), node["transform"]["scale"]["y"].as<f32>(), node["transform"]["scale"]["z"].as<f32>()};
 
         auto addedNode = std::make_shared<Node>(nodeName, nodePosition, nodeRotation, nodeScale);
+        addedNode->ID = id;
         NodeMgr::instance()->AddNode(addedNode);
 
         for (YAML::const_iterator pt = node["properties"].begin(); pt != node["properties"].end(); ++pt)
@@ -144,6 +114,13 @@ bool NodeMgr::LoadFromFile(std::string fileName)
             {
                 auto property = fp->second(addedNode);
                 property->Load(propertyNode);
+
+                if (propertyName == "Camera")
+                {
+                    mCamera = static_cast<CameraProperty *>(property.get());
+                    RIO_LOG("[NODEMGR] Found CameraProperty!\n");
+                }
+
                 addedNode->AddProperty(std::move(property));
 
                 RIO_LOG("[NODEMGR] Added Property: %s\n", propertyName.c_str());
@@ -165,8 +142,10 @@ bool NodeMgr::SaveToFile()
     outYaml << YAML::BeginMap;
     outYaml << YAML::Key << "nodes" << YAML::BeginMap;
 
-    for (auto &node : mInstance->mNodes)
+    for (auto &it : mInstance->mNodes)
     {
+        std::shared_ptr<Node> node = it.second;
+
         outYaml << YAML::Key << node->ID << YAML::BeginMap;
         outYaml << YAML::Key << "name" << YAML::Value << node->nodeKey;
 
@@ -213,8 +192,9 @@ void NodeMgr::Start()
 {
     rio::PrimitiveRenderer::instance()->begin();
 
-    for (auto &node : mNodes)
+    for (const auto &it : mNodes)
     {
+        std::shared_ptr<Node> node = it.second;
         for (auto &property : node->properties)
         {
             property->Start();
@@ -226,8 +206,9 @@ void NodeMgr::Start()
 
 void NodeMgr::Update()
 {
-    for (auto &node : mNodes)
+    for (const auto &it : mNodes)
     {
+        std::shared_ptr<Node> node = it.second;
         for (auto &property : node->properties)
         {
             EditorMgr::instance()->BindRenderBuffer();

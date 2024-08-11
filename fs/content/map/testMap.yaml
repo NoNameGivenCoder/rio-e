@@ -1,23 +1,60 @@
 nodes:
-  1:
-    name: mapCamera
+  5:
+    name: obj_emerald
     transform:
       position:
-        x: -0.151212662
-        y: 0.676572561
-        z: 2.84868002
+        x: 1
+        y: -2.5
+        z: 6.63999987
       rotation:
         x: 0
         y: 0
         z: 0
       scale:
-        x: 1
+        x: 0.879999995
         y: 1
         z: 1
     properties:
-      Camera:
-        cameraType: 0
-        cameraFOV: 90
+      Mesh:
+        meshFileName: emerald
+        meshKey: emerald
+  4:
+    name: obj_skybox_vr
+    transform:
+      position:
+        x: 1
+        y: -2.5
+        z: 0
+      rotation:
+        x: 0
+        y: 0
+        z: 0
+      scale:
+        x: -3
+        y: 3
+        z: 3
+    properties:
+      Mesh:
+        meshFileName: skybox
+        meshKey: skybox
+  3:
+    name: obj_test_mii_head
+    transform:
+      position:
+        x: -0.289999992
+        y: -0.469999999
+        z: 4.80999994
+      rotation:
+        x: 0
+        y: -4.19999981
+        z: 0
+      scale:
+        x: 1
+        y: 1
+        z: 0.00999999978
+    properties:
+      MiiHead:
+        miiDataFile: Jasmine.ffsd
         propertyId: 0
   2:
     name: obj_mus_mystic_ruins
@@ -40,15 +77,15 @@ nodes:
         audioKey: MainThemeBgm
         audioType: 0
         loop: 0
-        volume: 1
+        volume: 0.899999976
         propertyId: 0
-  3:
-    name: obj_test_mii_head
+  1:
+    name: mapCamera
     transform:
       position:
-        x: 0
-        y: 0
-        z: 0
+        x: -0.151212662
+        y: 0.676572561
+        z: 2.84868002
       rotation:
         x: 0
         y: 0
@@ -58,44 +95,7 @@ nodes:
         y: 1
         z: 1
     properties:
-      MiiHead:
-        miiDataFile: Yuji.ffsd
+      Camera:
+        cameraType: 0
+        cameraFOV: 90
         propertyId: 0
-  4:
-    name: obj_skybox_vr
-    transform:
-      position:
-        x: 1
-        y: -2.5
-        z: 0
-      rotation:
-        x: 0
-        y: 0
-        z: 0
-      scale:
-        x: -3
-        y: 3
-        z: 3
-    properties:
-      Mesh:
-        meshFileName: skybox
-        meshKey: skybox
-  5:
-    name: obj_emerald
-    transform:
-      position:
-        x: 1
-        y: -2.5
-        z: 0
-      rotation:
-        x: 0
-        y: 0
-        z: 0
-      scale:
-        x: 0.879999995
-        y: 1
-        z: 1
-    properties:
-      Mesh:
-        meshFileName: emerald
-        meshKey: emerald

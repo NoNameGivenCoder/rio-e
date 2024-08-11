@@ -167,8 +167,6 @@ void EditorMgr::ConvertDDSToGtx()
 
     bool ddsReadResult = DDSReadFile(fileBuffer, &ddsHeader);
 
-    std::vector<uint8_t> buffer(fileBuffer, fileBuffer + arg.read_size);
-
     RIO_LOG("[EDITORMGR] DDS Result: %d\n", (int)(ddsReadResult));
 
     if (ddsHeader.width <= 0 || ddsHeader.height <= 0 || ddsHeader.size <= 0)
@@ -195,14 +193,14 @@ void EditorMgr::ConvertDDSToGtx()
         return;
     }
 
-    int width = ddsHeader.width;
-    int height = ddsHeader.height;
-    int numMips = ddsHeader.mipMapCount;
-    int imageSize, format_;
+    u32 width = ddsHeader.width;
+    u32 height = ddsHeader.height;
+    u32 numMips = ddsHeader.mipMapCount;
+    u32 imageSize, format_;
     GX2SurfaceFormat gx2SurfaceFormat;
 
     // Uncompressed DDS Format
-    if (!ddsHeader.pixelFormat.flags & DDS_PIXEL_FORMAT_FLAGS_FOUR_CC)
+    if (!(ddsHeader.pixelFormat.flags & DDS_PIXEL_FORMAT_FLAGS_FOUR_CC))
     {
         return;
     }
@@ -210,18 +208,23 @@ void EditorMgr::ConvertDDSToGtx()
     {
         RIO_LOG("[EDITORMGR] Compressed DDS\n");
 
-        if (ddsHeader.pixelFormat.fourCC == "DX10")
+        const std::string fourCC(ddsHeader.pixelFormat.fourCC, 4);
+
+        if (fourCC == "DX10")
         {
             RIO_LOG("[EDITORMGR] DX10 DDS files are not supported for conversion!\n");
             return;
         }
-        else if (!(fourCCs.find(std::string(ddsHeader.pixelFormat.fourCC)) != fourCCs.end()))
+
+        const auto &it = fourCCs.find(fourCC);
+        if (it == fourCCs.end())
         {
             RIO_LOG("[EDITORMGR] Unsupported pixel format! %s\n", ddsHeader.pixelFormat.fourCC);
             return;
         }
 
-        auto arr = fourCCs.at(std::string(ddsHeader.pixelFormat.fourCC));
+        auto arr = it->second;
+
         format_ = arr[0];
         auto blockSize = arr[1];
 
@@ -245,16 +248,12 @@ void EditorMgr::ConvertDDSToGtx()
         imageSize = ((width + 3) >> 2) * ((height + 3) >> 2) * blockSize;
     }
 
-    std::vector<uint8_t> imageData(buffer.begin() + ddsHeader.size, buffer.begin() + ddsHeader.size + imageSize);
-    std::vector<uint8_t> mipData(buffer.begin() + ddsHeader.size + imageSize, buffer.end());
-
-    int compSel = (compSelArray[0] << 24 |
+    u32 compSel = (compSelArray[0] << 24 |
                    compSelArray[1] << 16 |
                    compSelArray[2] << 8 |
                    compSelArray[3]);
 
-    GX2Texture gx2Texture = GX2Texture();
-
+    GX2Texture gx2Texture;
     gx2Texture.surface.aa = GX2_AA_MODE_1X;
     gx2Texture.surface.dim = GX2_SURFACE_DIM_2D;
     gx2Texture.surface.width = width;
@@ -269,14 +268,13 @@ void EditorMgr::ConvertDDSToGtx()
 
     GX2CalcSurfaceSizeAndAlignment(&gx2Texture.surface);
 
-    u8 *imageBufferData = new u8[imageData.size()];
-    u8 *mipBufferData = new u8[mipData.size()];
+    assert(imageSize == gx2Texture.surface.imageSize);
+    assert(sizeof(DDSHeader) + imageSize + gx2Texture.surface.mipSize <= arg.read_size);
 
-    std::copy(imageData.begin(), imageData.end(), imageBufferData);
-    std::copy(mipData.begin(), mipData.end(), mipBufferData);
+    gx2Texture.surface.imagePtr = fileBuffer + sizeof(DDSHeader);
+    gx2Texture.surface.mipPtr = fileBuffer + sizeof(DDSHeader) + imageSize;
 
-    gx2Texture.surface.imagePtr = imageBufferData;
-    gx2Texture.surface.mipPtr = mipBufferData;
+    assert(false);
 
     // After here we can make a new function for this
 
@@ -406,8 +404,6 @@ void EditorMgr::ConvertDDSToGtx()
     rio::FileDeviceMgr::instance()->getNativeFileDevice()->write(&fileHandle, outBuffer.data(), outBuffer.size());
     rio::FileDeviceMgr::instance()->getNativeFileDevice()->close(&fileHandle);
 
-    rio::MemUtil::free(imageBufferData);
-    rio::MemUtil::free(mipBufferData);
     rio::MemUtil::free(blockHeaderData);
     rio::MemUtil::free(gfdHeaderBuffer);
     rio::MemUtil::free(gx2TextureData);
@@ -532,8 +528,10 @@ void EditorMgr::CreateEditorUI()
         {
             if (ImGui::BeginChild("nodes", ImGui::GetContentRegionAvail(), ImGuiChildFlags_AutoResizeY))
             {
-                for (const auto &node : NodeMgr::instance()->mNodes)
+                for (const auto &it : NodeMgr::instance()->mNodes)
                 {
+                    std::shared_ptr<Node> node = it.second;
+
                     if (!node || !node->nodeKey.c_str())
                         continue;
 

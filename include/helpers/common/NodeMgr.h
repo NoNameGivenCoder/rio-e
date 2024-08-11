@@ -25,23 +25,22 @@ public:
     static bool destorySingleton();
 
     static int AddNode(std::shared_ptr<Node> pNode);
-    static bool DeleteNode(const int pIndex);
+    static bool DeleteNode(const int pID);
 
     bool LoadFromFile(std::string fileName);
     bool SaveToFile();
 
-    std::vector<std::shared_ptr<Node>> mNodes;
+    std::unordered_map<int, std::shared_ptr<Node>> mNodes = {};
 
     static inline NodeMgr *instance() { return mInstance; };
     static inline int GetNodeCount() { return mInstance ? mInstance->mNodes.size() : 0; };
     static inline void ClearAllNodes() { return mInstance->mNodes.clear(); };
+    static inline std::shared_ptr<Node> GetNodeByID(int pID) { return mInstance->mNodes.at(pID); };
 
     void Update();
     void Start();
 
-    std::shared_ptr<Node> GetNodeByKey(const char *pKey);
-    Node *GetNodeByID(const int ID);
-    Node *GetNodeByIndex(const int pIndex);
+    static inline CameraProperty *GetGlobalCamera() { return mInstance->mCamera; };
 
     using PropertyCreateFunc = std::function<std::unique_ptr<Property>(std::shared_ptr<Node>)>;
     std::unordered_map<std::string, PropertyCreateFunc> mPropertyFactory = {
@@ -61,6 +60,7 @@ public:
 private:
     static NodeMgr *mInstance;
     std::string currentFilePath = "/";
+    CameraProperty *mCamera = nullptr;
 
     bool mInitialized = false;
 };
