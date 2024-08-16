@@ -153,6 +153,5 @@ private:
     };
 
     void UpdateTexturesDirCache();
-    void ConvertDDSToGtx();
-    void ConvertGtxToRtx();
+    u8 *ConvertDDSToGtx();
 };

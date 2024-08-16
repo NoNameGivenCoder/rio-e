@@ -11,7 +11,9 @@
 #include <iostream>
 #include <gpu/rio_RenderBuffer.h>
 #include <misc/rio_MemUtil.h>
+#include <helpers/editor/ConversionMgr.h>
 #include <filesystem>
+#include <helpers/editor/Texture2DUtil.h>
 
 EditorMgr *EditorMgr::mInstance = nullptr;
 
@@ -111,18 +113,13 @@ void EditorMgr::UpdateTexturesDirCache()
 
     if (currentFileWriteTime != mTexturesLastWriteTime)
     {
-        ConvertDDSToGtx();
-
+        mTextureSelected.clear();
         mTexturesLastWriteTime = currentFileWriteTime;
         mTextureCachedContents.clear();
         mTextures.clear();
 
         for (const auto &fileEntry : std::filesystem::directory_iterator(mTextureFolderPath))
         {
-            // We're only loading .rtx, since that is the file format for pc.
-            if (fileEntry.path().string().find(".rtx") == std::string::npos)
-                continue;
-
             RIO_LOG("[EDITORMGR] Loading texture %s..\n", fileEntry.path().filename().c_str());
 
             std::ifstream file(fileEntry.path(), std::ios::binary);
@@ -146,314 +143,46 @@ void EditorMgr::UpdateTexturesDirCache()
             }
 
             // Create rio::Texture2D object
-            std::unique_ptr<rio::Texture2D> texture = std::make_unique<rio::Texture2D>(fileBuffer, fileEntry.file_size());
+            if (fileEntry.path().extension().string() == ".rtx")
+            {
+                std::unique_ptr<rio::Texture2D> texture = std::make_unique<rio::Texture2D>(fileBuffer, fileEntry.file_size());
 
-            mTextures[fileEntry.path().string()] = std::move(texture);
+                mTextures[fileEntry.path().string()] = std::move(texture);
+                mTextureCachedContents.push_back(fileEntry.path());
+
+                delete[] fileBuffer;
+
+                continue;
+            }
+
+            // Thank you https://github.com/aboood40091/Miyamoto-Next
+            if (fileEntry.path().extension().string() == ".gtx")
+            {
+                std::vector<u8> fillBuffer;
+                ConvertGtxToRtx(fileBuffer, fillBuffer);
+
+                mFileDevice->open(&fileHandle, "textures/" + fileEntry.path().filename().string() + ".rtx", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
+                mFileDevice->write(&fileHandle, fillBuffer.data(), fillBuffer.size());
+                mFileDevice->close(&fileHandle);
+
+                std::unique_ptr<rio::Texture2D> texture;
+
+                Texture2DUtil::createFromGTX(fileBuffer, &texture);
+
+                mTextures[fileEntry.path().string()] = std::move(texture);
+                mTextureCachedContents.push_back(fileEntry.path());
+
+                delete[] fileBuffer;
+
+                continue;
+            }
+
+            mTextures[fileEntry.path().string()] = nullptr;
             mTextureCachedContents.push_back(fileEntry.path());
 
             delete[] fileBuffer;
         }
     }
-}
-
-void EditorMgr::ConvertDDSToGtx()
-{
-    DDSHeader ddsHeader;
-    std::array<int, 6> compSelArray;
-
-    rio::FileDevice::LoadArg arg;
-    arg.path = mTextureFolderPath + "/emerald.dds";
-    u8 *fileBuffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->load(arg);
-
-    bool ddsReadResult = DDSReadFile(fileBuffer, &ddsHeader);
-
-    RIO_LOG("[EDITORMGR] DDS Result: %d\n", (int)(ddsReadResult));
-
-    if (ddsHeader.width <= 0 || ddsHeader.height <= 0 || ddsHeader.size <= 0)
-    {
-        RIO_LOG("[EDITORMGR] Width, height, and/or size is less than or equal to 0. %d x %d, %d\n", ddsHeader.width, ddsHeader.height, ddsHeader.size);
-        return;
-    }
-
-    if (ddsHeader.depth > 1 || ddsHeader.caps2 & DDS_CAPS2_VOLUME)
-    {
-        RIO_LOG("[EDITORMGR] 3D Textures are not supported for conversion! %d | %d\n", ddsHeader.depth, (int)(ddsHeader.caps2));
-        return;
-    }
-
-    if (ddsHeader.caps2 & (DDS_CAPS2_CUBE_MAP | DDS_CAPS2_CUBE_MAP_POSITIVE_X | DDS_CAPS2_CUBE_MAP_NEGATIVE_X | DDS_CAPS2_CUBE_MAP_POSITIVE_Y | DDS_CAPS2_CUBE_MAP_NEGATIVE_Y | DDS_CAPS2_CUBE_MAP_POSITIVE_Z | DDS_CAPS2_CUBE_MAP_NEGATIVE_Z))
-    {
-        RIO_LOG("[EDITORMGR] Cube maps are not supported for conversion! %d\n", (int)(ddsHeader.caps2));
-        return;
-    }
-
-    if (ddsHeader.pixelFormat.flags & DDS_PIXEL_FORMAT_FLAGS_YUV)
-    {
-        RIO_LOG("[EDITORMGR] YUV color space is not supported for conversion! %d\n", (int)(ddsHeader.pixelFormat.flags));
-        return;
-    }
-
-    u32 width = ddsHeader.width;
-    u32 height = ddsHeader.height;
-    u32 numMips = ddsHeader.mipMapCount;
-    u32 imageSize, format_;
-    GX2SurfaceFormat gx2SurfaceFormat;
-
-    // Uncompressed DDS Format
-    if (!(ddsHeader.pixelFormat.flags & DDS_PIXEL_FORMAT_FLAGS_FOUR_CC))
-    {
-        return;
-    }
-    else
-    {
-        RIO_LOG("[EDITORMGR] Compressed DDS\n");
-
-        const std::string fourCC(ddsHeader.pixelFormat.fourCC, 4);
-
-        if (fourCC == "DX10")
-        {
-            RIO_LOG("[EDITORMGR] DX10 DDS files are not supported for conversion!\n");
-            return;
-        }
-
-        const auto &it = fourCCs.find(fourCC);
-        if (it == fourCCs.end())
-        {
-            RIO_LOG("[EDITORMGR] Unsupported pixel format! %s\n", ddsHeader.pixelFormat.fourCC);
-            return;
-        }
-
-        auto arr = it->second;
-
-        format_ = arr[0];
-        auto blockSize = arr[1];
-
-        if (!(format_ & 4))
-        {
-            compSelArray = {0, 1, 2, 3, 4, 5};
-
-            format_ |= 0x400;
-        }
-        else if ((format_ & 0x3F) == 0x34)
-        {
-            compSelArray = {0, 4, 4, 5, 4, 5};
-        }
-        else if ((format_ & 0x3F) == 0x35)
-        {
-            compSelArray = {0, 1, 4, 5, 4, 5};
-        }
-
-        gx2SurfaceFormat = GX2SurfaceFormat(format_);
-
-        imageSize = ((width + 3) >> 2) * ((height + 3) >> 2) * blockSize;
-    }
-
-    u32 compSel = (compSelArray[0] << 24 |
-                   compSelArray[1] << 16 |
-                   compSelArray[2] << 8 |
-                   compSelArray[3]);
-
-    GX2Texture gx2Texture;
-    gx2Texture.surface.aa = GX2_AA_MODE_1X;
-    gx2Texture.surface.dim = GX2_SURFACE_DIM_2D;
-    gx2Texture.surface.width = width;
-    gx2Texture.surface.height = height;
-    gx2Texture.surface.depth = 1;
-    gx2Texture.surface.numMips = numMips;
-    gx2Texture.surface.format = gx2SurfaceFormat;
-    gx2Texture.surface.use = GX2_SURFACE_USE_TEXTURE;
-    gx2Texture.surface.tileMode = GX2_TILE_MODE_LINEAR_SPECIAL;
-    gx2Texture.surface.swizzle = 0;
-    gx2Texture.compSel = compSel;
-
-    GX2CalcSurfaceSizeAndAlignment(&gx2Texture.surface);
-
-    assert(imageSize == gx2Texture.surface.imageSize);
-    assert(sizeof(DDSHeader) + imageSize + gx2Texture.surface.mipSize <= arg.read_size);
-
-    gx2Texture.surface.imagePtr = fileBuffer + sizeof(DDSHeader);
-    gx2Texture.surface.mipPtr = fileBuffer + sizeof(DDSHeader) + imageSize;
-
-    assert(false);
-
-    // After here we can make a new function for this
-
-    GFDFile *gfdFile = new GFDFile();
-    gfdFile->mTextures.emplace_back(gx2Texture);
-
-    int blockMajorVersion = 0;
-    int blockMinorVersion = 1;
-    bool align = (gfdFile->mHeader.alignMode == GFD_ALIGN_MODE_ENABLE);
-    int pos = 0;
-    bool endian = true;
-    bool serialized = true;
-
-    std::vector<u8> outBuffer;
-
-    void *blockHeaderData = rio::MemUtil::alloc(sizeof(GFDBlockHeader), 0);
-    void *gfdHeaderBuffer = rio::MemUtil::alloc(sizeof(GFDHeader), 0);
-    void *gx2TextureData = rio::MemUtil::alloc(sizeof(GX2Texture), 0);
-
-    SaveGFDHeader(gfdHeaderBuffer, &gfdFile->mHeader, serialized, endian);
-    addToBuffer(gfdHeaderBuffer, gfdFile->mHeader.size, &outBuffer);
-    pos += gfdFile->mHeader.size;
-
-    size_t blockHeaderSize = sizeof(GFDBlockHeader);
-    size_t gx2TextureSize = sizeof(GX2Texture);
-
-    GFDBlockHeader blockHeader = GFDBlockHeader();
-    if (gfdFile->mHeader.majorVersion == 6 && gfdFile->mHeader.minorVersion == 0)
-    {
-        blockMajorVersion = 0;
-        blockMinorVersion = 1;
-    }
-    else
-    {
-        blockMajorVersion = 1;
-        blockMinorVersion = 0;
-    }
-
-    blockHeader.majorVersion = blockMajorVersion;
-    blockHeader.minorVersion = blockMinorVersion;
-
-    for (const auto &texture : gfdFile->mTextures)
-    {
-        blockHeader.type = GFD_BLOCK_TYPE_V1_GX2_TEX_HEADER;
-        blockHeader.dataSize = gx2TextureSize;
-
-        // Converted
-        SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-        addToBuffer(blockHeaderData, blockHeaderSize, &outBuffer);
-        pos += blockHeaderSize;
-
-        // Converted
-        SaveGX2Texture(gx2TextureData, &texture, serialized, endian);
-        addToBuffer(gx2TextureData, gx2TextureSize, &outBuffer);
-        pos += gx2TextureSize;
-
-        if (align)
-        {
-            int dataPos = pos + blockHeaderSize * 2;
-            int padSize = RoundUp(dataPos, texture.surface.alignment) - dataPos;
-
-            blockHeader.type = GFD_BLOCK_TYPE_V1_PAD;
-            blockHeader.dataSize = padSize;
-
-            // Converted
-            SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-            addToBuffer(blockHeaderData, blockHeaderSize, &outBuffer);
-            pos += blockHeaderSize;
-
-            outBuffer.resize(outBuffer.size() + padSize, 0);
-            pos += padSize;
-        }
-
-        blockHeader.type = GFD_BLOCK_TYPE_V1_GX2_TEX_IMAGE_DATA;
-        blockHeader.dataSize = texture.surface.imageSize;
-
-        // Converted
-        SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-        addToBuffer(blockHeaderData, blockHeaderSize, &outBuffer);
-        pos += blockHeaderSize;
-
-        size_t oldSize = outBuffer.size();
-        outBuffer.resize(oldSize + texture.surface.imageSize);
-        std::memcpy(outBuffer.data() + oldSize, texture.surface.imagePtr, texture.surface.imageSize);
-        pos += texture.surface.imageSize;
-
-        if (texture.surface.mipPtr)
-        {
-            if (align)
-            {
-                int dataPos = pos + blockHeaderSize * 2;
-                int padSize = RoundUp(dataPos, texture.surface.alignment) - dataPos;
-
-                blockHeader.type = GFD_BLOCK_TYPE_V1_PAD;
-                blockHeader.dataSize = padSize;
-
-                SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-                addToBuffer(blockHeaderData, sizeof(GFDBlockHeader), &outBuffer);
-                pos += blockHeaderSize;
-
-                outBuffer.resize(outBuffer.size() + padSize, 0);
-                pos += padSize;
-            }
-
-            blockHeader.type = GFD_BLOCK_TYPE_V1_GX2_TEX_MIP_DATA;
-            blockHeader.dataSize = texture.surface.mipSize;
-
-            SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-            addToBuffer(blockHeaderData, sizeof(GFDBlockHeader), &outBuffer);
-            pos += blockHeaderSize;
-
-            size_t oldSize = outBuffer.size();
-            outBuffer.resize(oldSize + texture.surface.mipSize);
-            std::memcpy(outBuffer.data() + oldSize, texture.surface.mipPtr, texture.surface.mipSize);
-            pos += texture.surface.mipSize;
-        }
-    }
-
-    blockHeader.type = GFD_BLOCK_TYPE_END;
-    blockHeader.dataSize = 0;
-
-    SaveGFDBlockHeader(blockHeaderData, &blockHeader, serialized, endian);
-    addToBuffer(blockHeaderData, sizeof(GFDBlockHeader), &outBuffer);
-    pos += blockHeaderSize;
-
-    rio::FileDeviceMgr::instance()->getNativeFileDevice()->open(&fileHandle, "fullTest.gtx", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
-    rio::FileDeviceMgr::instance()->getNativeFileDevice()->write(&fileHandle, outBuffer.data(), outBuffer.size());
-    rio::FileDeviceMgr::instance()->getNativeFileDevice()->close(&fileHandle);
-
-    rio::MemUtil::free(blockHeaderData);
-    rio::MemUtil::free(gfdHeaderBuffer);
-    rio::MemUtil::free(gx2TextureData);
-}
-
-void EditorMgr::ConvertGtxToRtx()
-{
-    rio::FileDevice::LoadArg arg;
-    arg.path = mTextureFolderPath + "/emerald.gtx";
-    u8 *fileBuffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->load(arg);
-
-    RIO_LOG("%d\n", arg.read_size);
-
-    if (!fileBuffer)
-        return;
-
-    GFDFile *gfd = new GFDFile();
-    size_t fileSize = gfd->load(fileBuffer);
-
-    RIO_LOG("%d\n", fileSize);
-
-    // Not equal to one
-    if (gfd->mTextures.size() != 1)
-        return;
-
-    GX2Texture texture = gfd->mTextures[0];
-
-    if (!&texture)
-        return;
-
-    GX2Texture linear_texture;
-    LoadGX2Texture(&texture, &linear_texture, true, false);
-    LoadGX2Surface(&texture.surface, &linear_texture.surface, true, false);
-
-    GX2TexturePrintInfo(&linear_texture);
-    GX2SurfacePrintInfo(&linear_texture.surface);
-
-    rio::Texture2D *rioTexture = new rio::Texture2D((rio::TextureFormat)(linear_texture.surface.format), linear_texture.surface.width, linear_texture.surface.height, linear_texture.surface.numMips);
-
-    rioTexture->setCompMap(linear_texture.compSel);
-
-    if (rioTexture->getNumMips() > 1)
-    {
-        if (linear_texture.surface.mipOffset[0] == rioTexture->getNativeTexture().surface.imageSize)
-            return;
-    }
-
-    rio::MemUtil::free(rioTexture);
-    rio::MemUtil::free(gfd);
-    rio::MemUtil::free(fileBuffer);
 }
 
 void EditorMgr::CreateEditorUI()
@@ -628,10 +357,16 @@ void EditorMgr::CreateEditorUI()
                         if (isTextureSelected)
                             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 
+                        if (!mTextures[textureFilePath.string()].get())
+                            ImGui::BeginDisabled();
+
                         if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 25}))
                         {
                             mTextureSelected = textureFilePath;
                         }
+
+                        if (!mTextures[textureFilePath.string()].get())
+                            ImGui::EndDisabled();
 
                         if (isTextureSelected)
                             ImGui::PopStyleColor(1);
@@ -639,70 +374,70 @@ void EditorMgr::CreateEditorUI()
                     ImGui::EndChild();
                 }
                 ImGui::End();
-            }
 
-            if (ImGui::Begin("Texture"))
-            {
-                if (!mTextureSelected.empty())
+                if (ImGui::Begin("Texture"))
                 {
-                    auto textureIter = mTextures.find(mTextureSelected);
-
-                    if (textureIter == mTextures.end())
+                    if (!mTextureSelected.empty())
                     {
-                        RIO_LOG("[EDITORMGR] Texture not found: %s\n", mTextureSelected.c_str());
-                        return;
-                    }
+                        auto textureIter = mTextures.find(mTextureSelected);
 
-                    auto &texture = textureIter->second;
-
-                    if (!texture || !texture->getNativeTextureHandle())
-                    {
-                        RIO_LOG("[EDITORMGR] Error loading %s.", mTextureSelected.c_str());
-                        return;
-                    }
-
-                    if (ImGui::BeginChild("texture_info", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / 3}))
-                    {
-                        ImGui::Text("%s", mTextureSelected.filename().c_str());
-                        ImGui::Text("Size: %d x %d", texture->getWidth(), texture->getHeight());
-                        ImGui::Text("Mipmap Count: %d", texture->getNumMips());
-                        ImGui::Text("Comp Map: %d", texture->getCompMap());
-                        rio::TextureFormat texFormat = texture->getTextureFormat();
-                        std::string stringFormat = mTextureFormatMap.find(texFormat)->second;
-                        ImGui::Text("Texture Format: %s", stringFormat.c_str());
-
-                        ImGui::EndChild();
-                    }
-
-                    if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
-                    {
-                        // Desired aspect ratio
-                        const float desiredAspectRatio = 200.0f / 200.0f;
-
-                        // Get available space
-                        ImVec2 availSize = ImGui::GetContentRegionAvail();
-
-                        // Calculate the new size keeping the aspect ratio
-                        float newWidth = availSize.x;
-                        float newHeight = newWidth / desiredAspectRatio;
-
-                        if (newHeight > availSize.y)
+                        if (textureIter == mTextures.end())
                         {
-                            newHeight = availSize.y;
-                            newWidth = newHeight * desiredAspectRatio;
+                            RIO_LOG("[EDITORMGR] Texture not found: %s\n", mTextureSelected.c_str());
+                            return;
                         }
 
-                        // Center the image
-                        ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
+                        auto &texture = textureIter->second;
 
-                        ImGui::SetCursorPos(centerPos);
-                        ImGui::Image(reinterpret_cast<void *>(texture->getNativeTextureHandle()), {newHeight, newHeight});
+                        if (!texture || !texture->getNativeTextureHandle())
+                        {
+                            RIO_LOG("[EDITORMGR] Error loading %s.", mTextureSelected.c_str());
+                            return;
+                        }
 
-                        ImGui::EndChild();
+                        if (ImGui::BeginChild("texture_info", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / 3}))
+                        {
+                            ImGui::Text("%s", mTextureSelected.filename().c_str());
+                            ImGui::Text("Size: %d x %d", texture->getWidth(), texture->getHeight());
+                            ImGui::Text("Mipmap Count: %d", texture->getNumMips());
+                            ImGui::Text("Comp Map: %d", texture->getCompMap());
+                            rio::TextureFormat texFormat = texture->getTextureFormat();
+                            std::string stringFormat = mTextureFormatMap.find(texFormat)->second;
+                            ImGui::Text("Texture Format: %s", stringFormat.c_str());
+
+                            ImGui::EndChild();
+                        }
+
+                        if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+                        {
+                            // Desired aspect ratio
+                            const float desiredAspectRatio = 200.0f / 200.0f;
+
+                            // Get available space
+                            ImVec2 availSize = ImGui::GetContentRegionAvail();
+
+                            // Calculate the new size keeping the aspect ratio
+                            float newWidth = availSize.x;
+                            float newHeight = newWidth / desiredAspectRatio;
+
+                            if (newHeight > availSize.y)
+                            {
+                                newHeight = availSize.y;
+                                newWidth = newHeight * desiredAspectRatio;
+                            }
+
+                            // Center the image
+                            ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
+
+                            ImGui::SetCursorPos(centerPos);
+                            ImGui::Image(reinterpret_cast<void *>(texture->getNativeTextureHandle()), {newHeight, newHeight});
+
+                            ImGui::EndChild();
+                        }
                     }
-                }
 
-                ImGui::End();
+                    ImGui::End();
+                }
             }
 
             ImGui::End();
