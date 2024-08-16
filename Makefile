@@ -87,7 +87,7 @@ YAML_PARSER_SRC := $(shell find ./lib/yaml-cpp/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/properties/Property.cpp src/helpers/properties/gfx/MeshProperty.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp ../imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/editor/ConversionMgr.cpp src/helpers/editor/Texture2DUtil.cpp src/helpers/properties/Property.cpp src/helpers/properties/gfx/MeshProperty.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp ../imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)
