@@ -39,6 +39,9 @@
 *.lst
 *.map
 
+# ImGui Config files
+imgui.ini
+
 # Python Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

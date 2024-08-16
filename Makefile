@@ -2,7 +2,7 @@
 # Prepend toolchain prefix that you can choose
 CXX := $(TOOLCHAIN_PREFIX)g++
 
-INCLUDES := -I../yaml-cpp-0.8.0/include -I../ninTexUtils/include -I../rio/include -I../FFL-Windows/include -I../imgui/backends -I../imgui -Iinclude -Iincludes/helpers -I/usr/lib/gcc/x86_64-linux-gnu/12/include $(INCLUDES)
+INCLUDES := -I./lib/yaml-cpp/include -I./lib/ninTexUtils/include -I./lib/rio/include -I./lib/ffl/include -I./lib/imgui/backends -I./lib/imgui -Iinclude -Iincludes/helpers $(INCLUDES)
 
 # --- Definitions
 
@@ -80,10 +80,10 @@ CXXFLAGS := -g -std=c++17 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(
 
 # Source directories
 # glob all files in here for now
-NINTEXUTILS_SRC := $(shell find ../ninTexUtils/src/ninTexUtils -name '*.c' -o -name '*.cpp')
-RIO_SRC := $(shell find ../rio/src -name '*.c' -o -name '*.cpp')
-FFL_SRC := $(shell find ../FFL-Windows/src -name '*.c' -o -name '*.cpp')
-YAML_PARSER_SRC := $(shell find ../yaml-cpp-0.8.0/src -name '*.c' -o -name '*.cpp')
+NINTEXUTILS_SRC := $(shell find ./lib/ninTexUtils/src/ninTexUtils -name '*.c' -o -name '*.cpp')
+RIO_SRC := $(shell find ./lib/rio/src -name '*.c' -o -name '*.cpp')
+FFL_SRC := $(shell find ./lib/ffl/src -name '*.c' -o -name '*.cpp')
+YAML_PARSER_SRC := $(shell find ./lib/yaml-cpp/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
