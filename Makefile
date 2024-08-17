@@ -76,7 +76,7 @@ endif
 #endif
 
 # Build for debug by default, use C++17
-CXXFLAGS := -g -std=c++17 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(DEFS)
+CXXFLAGS := -g -std=c++20 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(DEFS) -m32
 
 # Source directories
 # glob all files in here for now

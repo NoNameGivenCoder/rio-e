@@ -1,0 +1,15 @@
+[submodule "lib/rio"]
+	path = lib/rio
+	url = https://github.com/aboood40091/rio
+[submodule "lib/ninTexUtils"]
+	path = lib/ninTexUtils
+	url = https://github.com/ariankordi/ninTexUtils
+[submodule "lib/yaml-cpp"]
+	path = lib/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "lib/imgui"]
+	path = lib/imgui
+	url = https://github.com/aboood40091/imgui
+[submodule "lib/ffl"]
+	path = lib/ffl
+	url = https://github.com/ariankordi/ffl
