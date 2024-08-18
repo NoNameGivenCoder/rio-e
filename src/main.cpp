@@ -6,11 +6,11 @@
 
 static const rio::InitializeArg cInitializeArg = {
     .window = {
-#if RIO_IS_WIN
+#if RIO_IS_DESKTOP
         .resizable = true,
         .gl_major = 4,
         .gl_minor = 3,
-#endif // RIO_IS_WIN
+#endif // RIO_IS_DESKTOP
     }};
 
 int main(int argc, char *argv[])
@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     EditorMgr::createSingleton();
     NodeMgr::createSingleton();
     FFLMgr::createSingleton();
+    StringMgr::createSingleton();
     rio::EnterMainLoop();
 
     // Exit RIO
@@ -30,6 +31,7 @@ int main(int argc, char *argv[])
     EditorMgr::destorySingleton();
     NodeMgr::destorySingleton();
     FFLMgr::destorySingleton();
+    StringMgr::destorySingleton();
 
     return 0;
 }

@@ -47,6 +47,9 @@ void AudioProperty::Start()
 
 void AudioProperty::LoadAudio()
 {
+    if (audioLoaded)
+        Stop();
+
     int propertyId = Property::GetPropertyID();
 
     RIO_LOG("[AUDIO] Loading %s..\n", audioFile->c_str());

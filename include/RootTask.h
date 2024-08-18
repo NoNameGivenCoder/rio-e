@@ -22,10 +22,10 @@ private:
     void initImgui();
     void Render();
 
-#if RIO_IS_WIN
+#if RIO_IS_DESKTOP
     void resize_(s32 width, s32 height);
     static void onResizeCallback_(s32 width, s32 height);
-#endif // RIO_IS_WIN
+#endif // RIO_IS_DESKTOP
 
 private:
     bool mInitialized;

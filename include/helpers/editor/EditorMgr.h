@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <variant>
 #include <algorithm>
+#include <helpers/common/StringMgr.h>
 
 class EditorMgr
 {
@@ -59,8 +60,23 @@ private:
 
     ImGuiIO io;
 
-    bool mTextureWindowEnabled;
+    void DrawStringsWindow();
+    void DrawTexturesWindow();
 
+    bool mStringsWindowEnabled;
+    bool mStringsUnsaved = false;
+    std::string mSelectedStringsID;
+    std::string mSelectedStringKey;
+    std::string mSelectedStringContent;
+    std::string mStringFolderPath = "";
+    std::string mStringWindowName = "String Viewer";
+    std::vector<std::filesystem::path> mStringCachedContents;
+    std::filesystem::file_time_type mStringLastWriteTime;
+    StringDictionary mCurrentStringDictionary;
+    void UpdateStringsDirCache();
+    static int UnsavedStringCallback(ImGuiInputTextCallbackData *data) { mInstance->mStringsUnsaved = true; };
+
+    bool mTextureWindowEnabled;
     std::string mTextureFolderPath = "";
     std::string mTextureWindowName = "Texture Viewer";
     std::filesystem::path mTextureSelected;

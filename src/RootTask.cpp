@@ -15,7 +15,7 @@
 
 #include <helpers/ui/ThemeMgr.h>
 
-RootTask::RootTask() : ITask("FFL Testing"), mInitialized(false)
+RootTask::RootTask() : ITask("RIO(e)"), mInitialized(false)
 {
 }
 

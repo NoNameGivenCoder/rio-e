@@ -1,0 +1,101 @@
+strings:
+  stress_test_12: String with "quotes" inside
+  stress_test_61: "CSS: body { margin: 0; padding: 0; }"
+  stress_test_34: "Escape sequences: \\n \\t \\\\"
+  stress_test_94: "UUID: 123e4567-e89b-12d3-a456-426614174000"
+  stress_test_45: "String with line feed only\n"
+  stress_test_58: "URL: https://www.example.com"
+  stress_test_53: String_with_a_single_quote_'
+  stress_test_26: "Subscript: H₂O CO₂ x₁ y₂"
+  stress_test_32: "Hexadecimal numbers: 0x1A3F 0xBADC0DE"
+  stress_test_41: "HTML entities: &lt; &gt; &amp; &quot; &apos;"
+  stress_test_96: "Version: 1.0.0-alpha+001"
+  stress_test_33: "Binary numbers: 0b1101 0b100110"
+  stress_test_27: "Superscript: x² y³ 10⁴ 5⁵"
+  stress_test_13: "Newline at the end\n"
+  stress_test_18: "| Character used in pipes and tables |"
+  stress_test_11: String with leading space
+  stress_test_01: A
+  stress_test_17: VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongWord
+  stress_test_69: "LaTeX: \\documentclass{article}\n\\begin{document}\nHello, World!\n\\end{document}"
+  stress_test_99: "MAC address: 00:1A:2B:3C:4D:5E"
+  stress_test_35: "Accented characters: Á É Í Ó Ú Ñ á é í ó ú ñ"
+  stress_test_38: "Cyrillic letters: А Б В Г Д Е Ё Ж З И Й К Л М Н О П Р С Т У Ф Х Ц Ч Ш Щ Ъ Ы Ь Э Ю Я"
+  stress_test_09: "\tIndented string with tabs at the beginning."
+  stress_test_83: "Anagram: Dormitory = Dirty Room"
+  stress_test_91: "Hex colors: #FF5733 #C70039 #900C3F"
+  stress_test_62: "JavaScript: console.log('Hello, World!');"
+  stress_test_19: "Quotes_and_Escapes\\\"\\'\\\n\\\t\\"
+  stress_test_04: "Line1\nLine2\nLine3"
+  stress_test_92: "RGB colors: rgb(255, 87, 51)"
+  stress_test_43: "Unusual punctuation: ¿ ¡ † ‡ ° ′ ″ ‴ ‵ ‶ ‷"
+  stress_test_10: "String with a trailing space "
+  stress_test_44: "Multiple spaces between words: This  is   a    test     of      multiple       spaces."
+  stress_test_31: "Whitespace characters: Space Tab Newline"
+  stress_test_42: Long string of dots...................................................................................................
+  stress_test_80: "Short phrase: The cat sat on the mat."
+  stress_test_49: String with forward slashes///
+  stress_test_28: "Different Quotation Marks: ‘ ’ “ ” « »"
+  stress_test_36: "Emoji: 😀 😂 😅 😎 🐱 🐶 🌟 🚀"
+  stress_test_82: "Palindrome: A man, a plan, a canal, Panama"
+  stress_test_15: "Special_Characters_~!@#$%^&*()_+{}|:\"<>?"
+  stress_test_52: Different combinations of punctuation !?.,;:"'
+  stress_test_88: "String with percent signs: 50% off everything!"
+  stress_test_47: "String with null character\x00"
+  stress_test_65: "Markdown: **Bold** *Italic* [Link](https://www.example.com)"
+  stress_test_95: "ISBN: 978-3-16-148410-0"
+  stress_test_67: "YAML: key: value\nanother_key: another_value"
+  stress_test_51: String_with_pipes | | |
+  stress_test_66: "XML: <note><to>Tove</to><from>Jani</from><body>Don't forget me this weekend!</body></note>"
+  stress_test_16: Mix_of_Underscores, Spaces, and - Dashes
+  stress_test_08: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+  stress_test_57: "Roman numerals: I II III IV V VI VII VIII IX X"
+  stress_test_37: "Greek letters: α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ σ τ υ φ χ ψ ω"
+  stress_test_71: "Bash: if [ \"$1\" == \"test\" ]; then echo \"Test passed\"; fi"
+  stress_test_39: "Chinese characters: 你好 世界"
+  stress_test_59: "HTML: <html><body><h1>Hello, World!</h1></body></html>"
+  stress_test_40: "Random Unicode: ꧁༺ཌ༒ད༻꧂"
+  stress_test_54: "Long number: 1234567890123456789012345678901234567890"
+  stress_test_97: "IP address: 192.168.0.1"
+  stress_test_55: "Mixed case: tHiS iS a MiXeD cAsE sTrInG"
+  stress_test_56: "Random symbols: ♠ ♣ ♥ ♦ ☺ ☻ ☼"
+  stress_test_84: "Acronym: LASER = Light Amplification by Stimulated Emission of Radiation"
+  stress_test_06: 1234567890
+  stress_test_05: こんにちは世界
+  stress_test_30: "Tab characters\tbetween\twords"
+  stress_test_79: "HTML with attributes: <img src=\"image.jpg\" alt=\"Image\"/>"
+  stress_test_60: "JSON: {\"key\": \"value\", \"number\": 123}"
+  stress_test_14: String_with_underscores_and_dashes
+  stress_test_63: "Python: def hello():\n    print('Hello, World!')"
+  stress_test_50: This is a very very very very very very very very very very very very very very very long string without any break!
+  stress_test_23: "Alpha: α Beta: β Gamma: γ Delta: δ"
+  stress_test_25: "Currency symbols: $ € £ ¥ ₩ ₽ ₹"
+  stress_test_46: "String with carriage return only\r"
+  stress_test_77: "Java: public static void main(String[] args) {\n    System.out.println(\"Hello, World!\");\n}"
+  stress_test_48: String with backslashes\\
+  stress_test_70: "Shell: echo 'Hello, World!'"
+  stress_test_85: "Scientific notation: 6.022e23"
+  stress_test_68: "SQL: SELECT * FROM users WHERE name = 'John';"
+  stress_test_07: The quick brown fox jumps over the lazy dog multiple times to see if it catches anything.
+  stress_test_20: "String_with_trailing_and_leading_spaces "
+  stress_test_73: "Command line: git commit -m 'Initial commit'"
+  stress_test_78: "PHP: <?php echo 'Hello, World!'; ?>"
+  stress_test_93: "HSL colors: hsl(9, 100%, 60%)"
+  stress_test_90: "HTML comment: <!-- This is a comment -->"
+  stress_test_03: ThisIsAReallyLongStringWithoutAnySpacesToTestTheBehaviorOfLongContinuousTextInTheUIOrFile
+  stress_test_02: "!@#$%^&*()_+-=~`[]{}|;:',.<>/?"
+  stress_test_86: "Fraction: 1/2, 3/4, 5/8"
+  stress_test_81: "Famous quote: 'To be, or not to be, that is the question.'"
+  stress_test_24: "Box Drawing: ─ ━ │ ┃ ┌ ┓ ┏ ┛ ┗ ┛"
+  stress_test_74: "File path: C:\\Users\\User\\Documents\\file.txt"
+  stress_test_64: "C++: int main() {\n    std::cout << \"Hello, World!\";\n    return 0;\n}"
+  stress_test_98: "Email: user@example.com"
+  stress_test_29: "Control characters: \b \f \n \r \t"
+  stress_test_87: "Word with hyphens: Mother-in-law"
+  stress_test_72: "Regex: ^[a-zA-Z0-9_]+@[a-zA-Z_]+?\\.[a-zA-Z]{2,3}$"
+  stress_test_89: "HTML entities mix: &lt;div&gt;&amp;lt;example&amp;gt;&lt;/div&gt;"
+  stress_test_100: "Base64: SGVsbG8sIFdvcmxkIQ=="
+  stress_test_21: Café with an accent
+  stress_test_22: "Math symbols: ∑ ∆ ∏ ∫ ∞ √ ∇ ± ÷ × ≠ ≈ ≤ ≥"
+  stress_test_76: "JSON with nested objects: {\"key1\": {\"subkey\": \"value\"}, \"key2\": \"value2\"}"
+  stress_test_75: "Unix path: /usr/local/bin/script.sh"

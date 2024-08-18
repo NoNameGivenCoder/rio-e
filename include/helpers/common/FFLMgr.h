@@ -15,13 +15,11 @@ public:
     static inline FFLMgr *instance() { return mInstance; };
 
     void InitializeFFL();
-    void CreateRandomMiddleDB(u16 pMiiLength);
+    // void CreateRandomMiddleDB(u16 pMiiLength);
 
     FFLStoreData GetStoreDataFromFile(std::string fileName, rio::RawErrorCode *errCode);
 
     FFLResolution GetGlobalResolution() { return mResolution; };
-
-    FFLMiddleDB mMiddleDB;
 
 private:
     static FFLMgr *mInstance;
@@ -31,6 +29,7 @@ private:
     void *miiBufferSize;
 
     FFLResolution mResolution;
+    // static FFLMiddleDB mMiddleDB;
 };
 
 #endif // FFLHELPER_H

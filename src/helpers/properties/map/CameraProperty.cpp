@@ -71,7 +71,6 @@ void CameraProperty::UseFlyCam()
     // Update camera position and orientation
     mCamera.at() = cameraPosition + forward;
     CameraProperty::GetParentNode().lock()->SetPosition(cameraPosition);
-    mCamera.pos().set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
 }
 
 void CameraProperty::Load(YAML::Node node)
@@ -125,6 +124,10 @@ void CameraProperty::Update()
         CameraProperty::UseFlyCam();
         break;
     }
+
+    rio::Vector3f camPos = CameraProperty::GetParentNode().lock()->GetPosition();
+
+    mCamera.pos().set(camPos.x, camPos.y, camPos.z);
 
     // Get window instance
     const rio::Window *const window = rio::Window::instance();

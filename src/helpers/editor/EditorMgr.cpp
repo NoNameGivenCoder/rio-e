@@ -14,6 +14,7 @@
 #include <helpers/editor/ConversionMgr.h>
 #include <filesystem>
 #include <helpers/editor/Texture2DUtil.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 EditorMgr *EditorMgr::mInstance = nullptr;
 
@@ -34,6 +35,7 @@ bool EditorMgr::createSingleton()
 
     mInstance->mFileDevice = rio::FileDeviceMgr::instance()->getMainFileDevice();
     mInstance->mTextureFolderPath = mInstance->mFileDevice->getNativePath("textures");
+    mInstance->mStringFolderPath = mInstance->mFileDevice->getNativePath("lang");
 
     return true;
 }
@@ -185,6 +187,23 @@ void EditorMgr::UpdateTexturesDirCache()
     }
 }
 
+void EditorMgr::UpdateStringsDirCache()
+{
+    std::filesystem::file_time_type currentFileWriteTime = std::filesystem::last_write_time(mStringFolderPath);
+
+    if (currentFileWriteTime != mStringLastWriteTime)
+    {
+        mStringLastWriteTime = currentFileWriteTime;
+        mStringCachedContents.clear();
+
+        for (const auto &fileEntry : std::filesystem::directory_iterator(mStringFolderPath))
+        {
+            StringMgr::instance()->LoadStrings(fileEntry.path().filename().string(), fileEntry.path().filename().string());
+            mStringCachedContents.emplace_back(fileEntry.path().filename().string());
+        }
+    }
+}
+
 void EditorMgr::CreateEditorUI()
 {
     if (!&io)
@@ -226,6 +245,7 @@ void EditorMgr::CreateEditorUI()
             if (ImGui::BeginMenu("Window"))
             {
                 ImGui::MenuItem(mTextureWindowName.c_str(), NULL, &mTextureWindowEnabled);
+                ImGui::MenuItem(mStringWindowName.c_str(), NULL, &mStringsWindowEnabled);
                 ImGui::EndMenu();
             }
 
@@ -343,105 +363,10 @@ void EditorMgr::CreateEditorUI()
         }
 
         if (mTextureWindowEnabled)
-        {
-            UpdateTexturesDirCache();
+            DrawTexturesWindow();
 
-            if (ImGui::Begin(mTextureWindowName.c_str()))
-            {
-                if (ImGui::BeginChild("textures", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
-                {
-                    for (const auto &textureFilePath : mTextureCachedContents)
-                    {
-                        bool isTextureSelected = mTextureSelected == textureFilePath;
-
-                        if (isTextureSelected)
-                            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
-
-                        if (!mTextures[textureFilePath.string()].get())
-                            ImGui::BeginDisabled();
-
-                        if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 25}))
-                        {
-                            mTextureSelected = textureFilePath;
-                        }
-
-                        if (!mTextures[textureFilePath.string()].get())
-                            ImGui::EndDisabled();
-
-                        if (isTextureSelected)
-                            ImGui::PopStyleColor(1);
-                    }
-                    ImGui::EndChild();
-                }
-                ImGui::End();
-
-                if (ImGui::Begin("Texture"))
-                {
-                    if (!mTextureSelected.empty())
-                    {
-                        auto textureIter = mTextures.find(mTextureSelected);
-
-                        if (textureIter == mTextures.end())
-                        {
-                            RIO_LOG("[EDITORMGR] Texture not found: %s\n", mTextureSelected.c_str());
-                            return;
-                        }
-
-                        auto &texture = textureIter->second;
-
-                        if (!texture || !texture->getNativeTextureHandle())
-                        {
-                            RIO_LOG("[EDITORMGR] Error loading %s.", mTextureSelected.c_str());
-                            return;
-                        }
-
-                        if (ImGui::BeginChild("texture_info", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / 3}))
-                        {
-                            ImGui::Text("%s", mTextureSelected.filename().c_str());
-                            ImGui::Text("Size: %d x %d", texture->getWidth(), texture->getHeight());
-                            ImGui::Text("Mipmap Count: %d", texture->getNumMips());
-                            ImGui::Text("Comp Map: %d", texture->getCompMap());
-                            rio::TextureFormat texFormat = texture->getTextureFormat();
-                            std::string stringFormat = mTextureFormatMap.find(texFormat)->second;
-                            ImGui::Text("Texture Format: %s", stringFormat.c_str());
-
-                            ImGui::EndChild();
-                        }
-
-                        if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
-                        {
-                            // Desired aspect ratio
-                            const float desiredAspectRatio = 200.0f / 200.0f;
-
-                            // Get available space
-                            ImVec2 availSize = ImGui::GetContentRegionAvail();
-
-                            // Calculate the new size keeping the aspect ratio
-                            float newWidth = availSize.x;
-                            float newHeight = newWidth / desiredAspectRatio;
-
-                            if (newHeight > availSize.y)
-                            {
-                                newHeight = availSize.y;
-                                newWidth = newHeight * desiredAspectRatio;
-                            }
-
-                            // Center the image
-                            ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
-
-                            ImGui::SetCursorPos(centerPos);
-                            ImGui::Image(reinterpret_cast<void *>(texture->getNativeTextureHandle()), {newHeight, newHeight});
-
-                            ImGui::EndChild();
-                        }
-                    }
-
-                    ImGui::End();
-                }
-            }
-
-            ImGui::End();
-        }
+        if (mStringsWindowEnabled)
+            DrawStringsWindow();
 
         ImGui::End();
     }
@@ -451,6 +376,239 @@ void EditorMgr::CreateEditorUI()
     ImGui::Render();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void EditorMgr::DrawStringsWindow()
+{
+    UpdateStringsDirCache();
+
+    ImGuiWindowFlags flags = 0;
+    if (mStringsUnsaved)
+        flags |= ImGuiWindowFlags_UnsavedDocument;
+
+    if (ImGui::Begin(mStringWindowName.c_str(), __null, flags | ImGuiWindowFlags_MenuBar))
+    {
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Save"))
+                {
+                    for (const auto &string : mStringCachedContents)
+                        StringMgr::instance()->SaveStrings(string, string);
+
+                    mStringsUnsaved = false;
+                }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("String"))
+            {
+                if (mSelectedStringsID.empty())
+                    ImGui::BeginDisabled();
+
+                if (ImGui::MenuItem("Add String"))
+                {
+                    StringMgr::instance()->mAllStrings[mSelectedStringsID]["New String (" + std::to_string(StringMgr::instance()->mAllStrings[mSelectedStringsID].size()) + ")"] = "Hello World!";
+                    mStringsUnsaved = true;
+                }
+
+                if (mSelectedStringsID.empty())
+                    ImGui::EndDisabled();
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+
+        if (ImGui::BeginChild("stringFiles", ImVec2(160, 0), true))
+        {
+            for (const auto &stringFile : mStringCachedContents)
+            {
+                if (ImGui::Selectable(stringFile.c_str(), mSelectedStringsID == stringFile))
+                    mSelectedStringsID = stringFile;
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::BeginChild("strings", ImVec2(160, 0), true))
+        {
+            auto &stringsMap = StringMgr::instance()->mAllStrings[mSelectedStringsID];
+            for (auto it = stringsMap.begin(); it != stringsMap.end();)
+            {
+                const auto &string = *it;
+
+                if (ImGui::Selectable(string.first.c_str()))
+                    mSelectedStringKey = string.first;
+
+                if (ImGui::BeginPopupContextItem(string.first.c_str()))
+                {
+                    if (ImGui::MenuItem("Delete"))
+                    {
+                        if (mSelectedStringKey == string.first)
+                            mSelectedStringKey.clear();
+
+                        it = stringsMap.erase(it);
+                        mStringsUnsaved = true;
+                        ImGui::EndPopup();
+                        continue;
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                ++it;
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::BeginChild("string", ImVec2(0, 0), true))
+        {
+            if (StringMgr::instance()->mAllStrings[mSelectedStringsID].find(mSelectedStringKey) != StringMgr::instance()->mAllStrings[mSelectedStringsID].end())
+            {
+                auto it = StringMgr::instance()->mAllStrings[mSelectedStringsID].find(mSelectedStringKey);
+
+                if (it != StringMgr::instance()->mAllStrings[mSelectedStringsID].end())
+                {
+                    std::string newKey = it->first;
+
+                    ImGui::PushID("string_info");
+                    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+                    if (ImGui::InputText("", &newKey, ImGuiInputTextFlags_EnterReturnsTrue))
+                    {
+                        if (newKey != it->first)
+                        {
+                            auto value = it->second;
+                            StringMgr::instance()->mAllStrings[mSelectedStringsID].erase(it);
+                            StringMgr::instance()->mAllStrings[mSelectedStringsID][newKey] = value;
+                            mSelectedStringKey = newKey;
+                        }
+
+                        mStringsUnsaved = true;
+                    }
+                    ImGui::PopID();
+                    ImGui::PopItemWidth();
+                }
+
+                ImGui::PushID("string");
+                ImGui::InputTextMultiline("", &StringMgr::instance()->mAllStrings[mSelectedStringsID][mSelectedStringKey], ImGui::GetContentRegionAvail(), ImGuiInputTextFlags_CallbackEdit, mInstance->UnsavedStringCallback);
+                ImGui::PopID();
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::End();
+    }
+}
+
+void EditorMgr::DrawTexturesWindow()
+{
+    UpdateTexturesDirCache();
+
+    if (ImGui::Begin(mTextureWindowName.c_str()))
+    {
+        if (ImGui::BeginChild("textures", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+        {
+            for (const auto &textureFilePath : mTextureCachedContents)
+            {
+                bool isTextureSelected = mTextureSelected == textureFilePath;
+
+                if (isTextureSelected)
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+
+                if (!mTextures[textureFilePath.string()].get())
+                    ImGui::BeginDisabled();
+
+                if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 25}))
+                {
+                    mTextureSelected = textureFilePath;
+                }
+
+                if (!mTextures[textureFilePath.string()].get())
+                    ImGui::EndDisabled();
+
+                if (isTextureSelected)
+                    ImGui::PopStyleColor(1);
+            }
+            ImGui::EndChild();
+        }
+        ImGui::End();
+
+        if (ImGui::Begin("Texture"))
+        {
+            if (!mTextureSelected.empty())
+            {
+                auto textureIter = mTextures.find(mTextureSelected);
+
+                if (textureIter == mTextures.end())
+                {
+                    RIO_LOG("[EDITORMGR] Texture not found: %s\n", mTextureSelected.c_str());
+                    return;
+                }
+
+                auto &texture = textureIter->second;
+
+                if (!texture || !texture->getNativeTextureHandle())
+                {
+                    RIO_LOG("[EDITORMGR] Error loading %s.", mTextureSelected.c_str());
+                    return;
+                }
+
+                if (ImGui::BeginChild("texture_info", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / 3}))
+                {
+                    ImGui::Text("%s", mTextureSelected.filename().c_str());
+                    ImGui::Text("Size: %d x %d", texture->getWidth(), texture->getHeight());
+                    ImGui::Text("Mipmap Count: %d", texture->getNumMips());
+                    ImGui::Text("Comp Map: %d", texture->getCompMap());
+                    rio::TextureFormat texFormat = texture->getTextureFormat();
+                    std::string stringFormat = mTextureFormatMap.find(texFormat)->second;
+                    ImGui::Text("Texture Format: %s", stringFormat.c_str());
+
+                    ImGui::EndChild();
+                }
+
+                if (ImGui::BeginChild("texture_display", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+                {
+                    // Desired aspect ratio
+                    const float desiredAspectRatio = 200.0f / 200.0f;
+
+                    // Get available space
+                    ImVec2 availSize = ImGui::GetContentRegionAvail();
+
+                    // Calculate the new size keeping the aspect ratio
+                    float newWidth = availSize.x;
+                    float newHeight = newWidth / desiredAspectRatio;
+
+                    if (newHeight > availSize.y)
+                    {
+                        newHeight = availSize.y;
+                        newWidth = newHeight * desiredAspectRatio;
+                    }
+
+                    // Center the image
+                    ImVec2 centerPos = {(availSize.x - newWidth) * 0.5f, (availSize.y - newHeight) * 0.5f};
+
+                    ImGui::SetCursorPos(centerPos);
+                    ImGui::Image(reinterpret_cast<void *>(texture->getNativeTextureHandle()), {newHeight, newHeight});
+
+                    ImGui::EndChild();
+                }
+            }
+
+            ImGui::End();
+        }
+    }
+
+    ImGui::End();
 }
 
 void EditorMgr::CreateNodePropertiesMenu()

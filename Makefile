@@ -76,18 +76,18 @@ endif
 #endif
 
 # Build for debug by default, use C++17
-CXXFLAGS := -g -std=c++20 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(DEFS) -m32
+CXXFLAGS := -g -std=c++17 $(CXXFLAGS) $(INCLUDES) $(PKG_CONFIG_CFLAGS_OUTPUT) $(DEFS)
 
 # Source directories
 # glob all files in here for now
-NINTEXUTILS_SRC := $(shell find ./lib/ninTexUtils/src/ninTexUtils -name '*.c' -o -name '*.cpp')
+NINTEXUTILS_SRC := $(shell find ./lib/ninTexUtils/src -name '*.c' -o -name '*.cpp')
 RIO_SRC := $(shell find ./lib/rio/src -name '*.c' -o -name '*.cpp')
 FFL_SRC := $(shell find ./lib/ffl/src -name '*.c' -o -name '*.cpp')
 YAML_PARSER_SRC := $(shell find ./lib/yaml-cpp/src -name '*.c' -o -name '*.cpp')
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/editor/ConversionMgr.cpp src/helpers/editor/Texture2DUtil.cpp src/helpers/properties/Property.cpp src/helpers/properties/gfx/MeshProperty.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/RootTask.cpp ../imgui/backends/imgui_impl_glfw.cpp ../imgui/backends/imgui_impl_opengl3.cpp ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_tables.cpp ../imgui/imgui_widgets.cpp ../imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
+SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/common/StringMgr.cpp src/helpers/editor/ConversionMgr.cpp src/helpers/editor/Texture2DUtil.cpp src/helpers/properties/Property.cpp src/helpers/properties/gfx/MeshProperty.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/RootTask.cpp ./lib/imgui/backends/imgui_impl_glfw.cpp ./lib/imgui/backends/imgui_impl_opengl3.cpp ./lib/imgui/imgui.cpp ./lib/imgui/imgui_demo.cpp ./lib/imgui/imgui_draw.cpp ./lib/imgui/imgui_tables.cpp ./lib/imgui/imgui_widgets.cpp ./lib/imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)

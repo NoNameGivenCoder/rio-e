@@ -1,5 +1,4 @@
 #include <helpers/common/FFLMgr.h>
-#include <nn/ffl.h>
 #include <string>
 #include <filedevice/rio_FileDeviceMgr.h>
 #include <misc/rio_MemUtil.h>
@@ -58,13 +57,13 @@ bool FFLMgr::destorySingleton()
     return true;
 }
 
-void FFLMgr::CreateRandomMiddleDB(u16 pMiiLength)
-{
-    miiBufferSize = new u8[FFLGetMiddleDBBufferSize(pMiiLength)];
-    FFLInitMiddleDB(&mMiddleDB, FFL_MIDDLE_DB_TYPE_RANDOM_PARAM, miiBufferSize, pMiiLength);
-    FFLUpdateMiddleDB(&mMiddleDB);
-    RIO_LOG("[FFLMGR] Created Random Middle DB.\n");
-}
+// void FFLMgr::CreateRandomMiddleDB(u16 pMiiLength)
+//{
+//     miiBufferSize = new u8[FFLGetMiddleDBBufferSize(pMiiLength)];
+//     FFLInitMiddleDB(&mMiddleDB, FFL_MIDDLE_DB_TYPE_RANDOM_PARAM, miiBufferSize, pMiiLength);
+//     FFLUpdateMiddleDB(&mMiddleDB);
+//    RIO_LOG("[FFLMGR] Created Random Middle DB.\n");
+//}
 
 FFLStoreData FFLMgr::GetStoreDataFromFile(std::string fileName, rio::RawErrorCode *errCode)
 {
