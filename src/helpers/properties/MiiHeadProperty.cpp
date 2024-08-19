@@ -5,7 +5,6 @@
 #include <gpu/rio_Shader.h>
 #include <gfx/rio_Window.h>
 #include <gfx/rio_Graphics.h>
-#include <helpers/editor/EditorMgr.h>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>

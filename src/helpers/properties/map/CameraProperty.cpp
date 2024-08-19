@@ -26,8 +26,12 @@ YAML::Node CameraProperty::Save()
 
 void CameraProperty::UseFlyCam()
 {
-    rio::Controller *controller = rio::ControllerMgr::instance()->getGamepad(0);
+    rio::Controller *controller = rio::ControllerMgr::instance()->getMainController();
     rio::Vector3f cameraPosition = CameraProperty::GetParentNode().lock()->GetPosition();
+
+    RIO_LOG("%f, %f\n", controller->getPointer().x, controller->getPointer().y);
+
+    return;
 
     if (!controller || !controller->isConnected())
     {

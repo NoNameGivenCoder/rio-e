@@ -57,6 +57,15 @@ public:
         {"Mesh", [](std::shared_ptr<Node> node)
          { return std::make_unique<MeshProperty>(node); }}};
 
+    std::vector<std::string> GetAvailableProperties() const
+    {
+        std::vector<std::string> properties;
+        for (const auto &pair : mPropertyFactory)
+            properties.push_back(pair.first);
+
+        return properties;
+    }
+
 private:
     static NodeMgr *mInstance;
     std::string currentFilePath = "/";

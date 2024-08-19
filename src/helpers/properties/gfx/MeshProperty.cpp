@@ -1,6 +1,5 @@
 #include <helpers/properties/gfx/MeshProperty.h>
 #include <helpers/common/NodeMgr.h>
-#include <helpers/editor/EditorMgr.h>
 
 __attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) MeshProperty::ViewBlock MeshProperty::sViewBlock;
 __attribute__((aligned(rio::Drawer::cUniformBlockAlignment))) MeshProperty::LightBlock MeshProperty::sLightBlock;

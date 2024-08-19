@@ -109,11 +109,11 @@ no_clip_control: CXXFLAGS += -DRIO_NO_CLIP_CONTROL
 no_clip_control: EXEC := $(EXEC)_no_clip_control
 no_clip_control: $(EXEC)_no_clip_control
 # clone of exec target bc idk how else to do this
-$(EXEC)_no_clip_control: $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ)
+$(EXEC)_no_clip_control: $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ)
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)
 
 # Linking the executable
-$(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ)
+$(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ)
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)
 
 # Compiling source files
@@ -125,7 +125,7 @@ $(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ)
 
 # Clean up
 clean:
-	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(OBJ) $(YAML_PARSER_OBJ) $(EXEC) src/Shader*.o ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
+	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ) $(EXEC) src/Shader*.o ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
 
 # Clean within the project folder
 cleanin:

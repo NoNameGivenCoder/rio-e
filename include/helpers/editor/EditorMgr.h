@@ -24,6 +24,7 @@
 #include <variant>
 #include <algorithm>
 #include <helpers/common/StringMgr.h>
+#include <helpers/editor/ConversionMgr.h>
 
 class EditorMgr
 {

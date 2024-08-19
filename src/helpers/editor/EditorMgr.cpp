@@ -11,7 +11,6 @@
 #include <iostream>
 #include <gpu/rio_RenderBuffer.h>
 #include <misc/rio_MemUtil.h>
-#include <helpers/editor/ConversionMgr.h>
 #include <filesystem>
 #include <helpers/editor/Texture2DUtil.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -246,6 +245,16 @@ void EditorMgr::CreateEditorUI()
             {
                 ImGui::MenuItem(mTextureWindowName.c_str(), NULL, &mTextureWindowEnabled);
                 ImGui::MenuItem(mStringWindowName.c_str(), NULL, &mStringsWindowEnabled);
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Model Testing"))
+            {
+                if (ImGui::MenuItem("Model Conversion"))
+                {
+                    OBJToRioModel("fs/content/models/Cylinder.obj");
+                }
+
                 ImGui::EndMenu();
             }
 
