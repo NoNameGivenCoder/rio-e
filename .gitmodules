@@ -9,7 +9,9 @@
 	url = https://github.com/jbeder/yaml-cpp
 [submodule "lib/ffl"]
 	path = lib/ffl
-	url = https://github.com/ariankordi/ffl
 [submodule "lib/imgui"]
 	path = lib/imgui
 	url = https://github.com/aboood40091/imgui
+[submodule "lib/imgui-filebrowser"]
+	path = lib/imgui-filebrowser
+	url = https://github.com/AirGuanZ/imgui-filebrowser
