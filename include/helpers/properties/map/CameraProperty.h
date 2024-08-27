@@ -2,12 +2,27 @@
 #define CAMERAHELPER_H
 
 #include <rio.h>
-#include <audio/rio_AudioMgr.h>
-#include <audio/rio_AudioSrc.h>
-#include <gfx/rio_Camera.h>
-#include <helpers/properties/Property.h>
+
 #include <gfx/rio_Color.h>
+#include <gfx/rio_Camera.h>
+#include <gfx/rio_Camera.h>
+#include <gfx/rio_Projection.h>
+#include <gfx/rio_PrimitiveRenderer.h>
+#include <gfx/rio_Window.h>
+
+#include <audio/rio_AudioMgr.h>
+
+#include <controller/rio_Controller.h>
+#include <controller/rio_ControllerMgr.h>
+#include <controller/win/rio_KeyboardMouseDeviceWin.h>
+#include <controller/win/rio_WinControllerWin.h>
+
+#include <misc/rio_MemUtil.h>
+
+#include <helpers/properties/Property.h>
+#include <helpers/common/Node.h>
 #include <helpers/editor/EditorTypes.h>
+
 
 class CameraProperty : public Property
 {

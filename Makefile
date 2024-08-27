@@ -2,7 +2,7 @@
 # Prepend toolchain prefix that you can choose
 CXX := $(TOOLCHAIN_PREFIX)g++
 
-INCLUDES := -I./lib/yaml-cpp/include -I./lib/ninTexUtils/include -I./lib/rio/include -I./lib/ffl/include -I./lib/imgui/backends -I./lib/imgui -Iinclude -Iincludes/helpers $(INCLUDES)
+INCLUDES := -I./lib/yaml-cpp/include -I./lib/ninTexUtils/include -I./lib/rio/include -I./lib/ffl/include -I./lib/imgui-filebrowser -I./lib/imgui/backends -I./lib/imgui -Iinclude -Iincludes/helpers $(INCLUDES)
 
 # --- Definitions
 
@@ -84,10 +84,11 @@ NINTEXUTILS_SRC := $(shell find ./lib/ninTexUtils/src -name '*.c' -o -name '*.cp
 RIO_SRC := $(shell find ./lib/rio/src -name '*.c' -o -name '*.cpp')
 FFL_SRC := $(shell find ./lib/ffl/src -name '*.c' -o -name '*.cpp')
 YAML_PARSER_SRC := $(shell find ./lib/yaml-cpp/src -name '*.c' -o -name '*.cpp')
+IMGUI_SRC := ./lib/imgui/backends/imgui_impl_glfw.cpp ./lib/imgui/backends/imgui_impl_opengl3.cpp ./lib/imgui/imgui.cpp ./lib/imgui/imgui_demo.cpp ./lib/imgui/imgui_draw.cpp ./lib/imgui/imgui_tables.cpp ./lib/imgui/imgui_widgets.cpp ./lib/imgui/misc/cpp/imgui_stdlib.cpp
 
 SHADER ?= src/Shader.cpp
 # Main source
-SRC := src/main.cpp src/helpers/ui/ThemeMgr.cpp src/helpers/editor/EditorMgr.cpp src/helpers/common/StringMgr.cpp src/helpers/editor/ConversionMgr.cpp src/helpers/editor/Texture2DUtil.cpp src/helpers/properties/Property.cpp src/helpers/properties/gfx/MeshProperty.cpp src/helpers/properties/examples/ExampleEnumProperty.cpp src/helpers/properties/MiiHeadProperty.cpp src/helpers/common/FFLMgr.cpp src/helpers/common/Node.cpp src/helpers/properties/map/CameraProperty.cpp src/helpers/properties/gfx/PrimitiveProperty.cpp src/helpers/common/NodeMgr.cpp src/helpers/properties/audio/AudioProperty.cpp src/RootTask.cpp ./lib/imgui/backends/imgui_impl_glfw.cpp ./lib/imgui/backends/imgui_impl_opengl3.cpp ./lib/imgui/imgui.cpp ./lib/imgui/imgui_demo.cpp ./lib/imgui/imgui_draw.cpp ./lib/imgui/imgui_tables.cpp ./lib/imgui/imgui_widgets.cpp ./lib/imgui/misc/cpp/imgui_stdlib.cpp $(SHADER)
+SRC := $(shell find ./src -name '*.c' -o -name '*.cpp')
 
 # Object files
 NINTEXUTILS_OBJ := $(NINTEXUTILS_SRC:.c=.o)
@@ -95,6 +96,7 @@ NINTEXUTILS_OBJ := $(NINTEXUTILS_OBJ:.cpp=.o)
 RIO_OBJ := $(RIO_SRC:.cpp=.o)
 FFL_OBJ := $(FFL_SRC:.cpp=.o)
 YAML_PARSER_OBJ := $(YAML_PARSER_SRC:.cpp=.o)
+IMGUI_OBJ := $(IMGUI_SRC:.cpp=.o)
 OBJ := $(SRC:.cpp=.o)
 
 # --- Targets
@@ -109,11 +111,11 @@ no_clip_control: CXXFLAGS += -DRIO_NO_CLIP_CONTROL
 no_clip_control: EXEC := $(EXEC)_no_clip_control
 no_clip_control: $(EXEC)_no_clip_control
 # clone of exec target bc idk how else to do this
-$(EXEC)_no_clip_control: $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ)
+$(EXEC)_no_clip_control: $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(IMGUI_OBJ) $(OBJ)
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)
 
 # Linking the executable
-$(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ)
+$(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(IMGUI_OBJ) $(OBJ)
 	$(CXX) $^ -o $@ $(CXXFLAGS) $(LDFLAGS)
 
 # Compiling source files
@@ -125,7 +127,7 @@ $(EXEC): $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ)
 
 # Clean up
 clean:
-	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ) $(EXEC) src/Shader*.o ../../imgui/backends/*.o ../../imgui/backends/*.d ../../imgui/backends/*.map
+	rm -f $(NINTEXUTILS_OBJ) $(RIO_OBJ) $(FFL_OBJ) $(YAML_PARSER_OBJ) $(OBJ) $(IMGUI_OBJ) $(EXEC)
 
 # Clean within the project folder
 cleanin:

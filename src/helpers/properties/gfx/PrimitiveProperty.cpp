@@ -1,5 +1,4 @@
 #include <helpers/properties/gfx/PrimitiveProperty.h>
-#include <gfx/rio_PrimitiveRenderer.h>
 
 YAML::Node PrimitiveProperty::Save()
 {

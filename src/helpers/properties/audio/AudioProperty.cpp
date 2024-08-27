@@ -1,15 +1,16 @@
-#include <rio.h>
-#include <audio/rio_AudioMgr.h>
-#include <audio/rio_AudioSrc.h>
-#include <filedevice/rio_FileDeviceMgr.h>
-#include <gfx/rio_Camera.h>
 #include <helpers/properties/audio/AudioProperty.h>
-#include <helpers/common/Node.h>
-#include <helpers/common/NodeMgr.h>
-#include <helpers/properties/map/CameraProperty.h>
-#include <yaml-cpp/yaml.h>
-#include <imgui.h>
-#include <misc/cpp/imgui_stdlib.h>
+
+namespace
+{
+    struct AudioPropertyRegistrar
+    {
+        AudioPropertyRegistrar()
+        {
+            NodeMgr::instance()->RegisterProperty("Audio", [](std::shared_ptr<Node> node)
+                                                  { return std::make_unique<AudioProperty>(node); });
+        }
+    } registrar;
+}
 
 YAML::Node AudioProperty::Save()
 {

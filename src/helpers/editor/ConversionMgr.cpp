@@ -130,10 +130,64 @@ OBJReturnResult ReadOBJ(std::string fileName)
     returnResult.indices = indices;
     returnResult.vertices = vertices;
 
-    RIO_LOG("Vertices Count: %d\n", pos.size());
+    RIO_LOG("Vertices Count: %d\n", vertices.size());
     RIO_LOG("Indices Count: %d\n", indices.size());
 
     return returnResult;
+}
+
+std::vector<Material> ReadMTL(std::string fileName)
+{
+    rio::FileHandle fileHandle;
+    rio::FileDevice::LoadArg arg;
+    arg.path = fileName;
+    u8 *fileBuffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->load(arg);
+
+    std::string mtlFileReadData(reinterpret_cast<char *>(fileBuffer));
+    std::istringstream lineStream(mtlFileReadData);
+    std::string line;
+
+    std::vector<Material> mat;
+
+    Material material;
+    while (std::getline(lineStream, line))
+    {
+        std::istringstream tokenStream(line);
+        std::vector<std::string> tokens;
+        std::string token;
+
+        if (line.empty())
+            continue;
+
+        while (tokenStream >> token)
+            tokens.push_back(token);
+
+        if (tokens[0] == "newmtl")
+        {
+            if (!material.name.empty())
+            {
+                mat.push_back(material);
+            }
+
+            material = Material();
+            material.name = tokens[1];
+        }
+
+        if (tokens[0] == "map_Kd")
+        {
+            Texture texture = Texture();
+            texture.name = tokens[1];
+            texture.samplerName = "texture1";
+            material.textures.emplace_back(texture);
+        }
+    }
+
+    if (!material.name.empty())
+    {
+        mat.push_back(material);
+    }
+
+    return mat;
 }
 
 bool areVerticesEqual(const rio::mdl::res::Vertex &v1, const rio::mdl::res::Vertex &v2)
@@ -148,490 +202,479 @@ u32 align(u32 x, u32 y)
     return ((x - 1) | (y - 1)) + 1;
 }
 
-void OBJToRioModel(std::string fileName)
+void SaveRioModel(const Model &model, bool endian, std::string fileName)
 {
-    OBJReturnResult returnResult = ReadOBJ(fileName);
+    u8 meshesCount = model.meshes.size();
+    u8 materialsCount = model.materials.size();
+
+    u32 meshesPos = 0x20;
+
+    u32 vtxBufsPos = meshesPos;
+    vtxBufsPos += 0x38 * meshesCount;
+    vtxBufsPos = align(vtxBufsPos, 0x40);
+
+    u32 idxBufsPos = vtxBufsPos;
+    for (const auto &mesh : model.meshes)
+    {
+        idxBufsPos = align(idxBufsPos, 0x40);
+        idxBufsPos += 0x20 * mesh.vertices.size();
+    }
+    idxBufsPos = align(idxBufsPos, 0x20);
+
+    u32 materialsPos = idxBufsPos;
+    for (const auto &mesh : model.meshes)
+    {
+        materialsPos = align(materialsPos, 0x20);
+        materialsPos += 4 * mesh.indices.size();
+    }
+
+    u32 texturesPos = materialsPos;
+    texturesPos += 0x80 * materialsCount;
+
+    u32 stringsPos = texturesPos;
+    for (const auto &material : model.materials)
+        stringsPos += 0x48 * material.textures.size();
+
+    u32 fileSize = stringsPos;
+
+    for (const auto &material : model.materials)
+    {
+        fileSize += material.name.size() + 1;
+        fileSize += material.shaderName.size() + 1;
+        for (const auto &texture : material.textures)
+        {
+            fileSize += texture.name.size() + 1;
+            fileSize += texture.samplerName.size() + 1;
+        }
+    }
+
+    RIO_LOG("File Size: %d\n", fileSize);
+
+    std::vector<u8> data;
+
+    pack_string(data, "riomodel");
+    pack_int(data, 0x01000000, false);
+    pack_int(data, fileSize, false);
+
+    if (data.size() != 0x10)
+    {
+        RIO_LOG("Wrong data size! 0x10\n");
+        return;
+    }
+
+    pack_int(data, meshesPos - 0x10, false);
+    pack_int(data, meshesCount, false);
+
+    if (data.size() != 0x18)
+    {
+        RIO_LOG("Wrong data size! 0x18\n");
+    }
+
+    pack_int(data, materialsPos - 0x18, false);
+    pack_int(data, materialsCount, false);
+
+    if (data.size() != meshesPos)
+    {
+        RIO_LOG("Data size doesn't equal meshesPos!\n");
+    }
+
+    u32 curPos = meshesPos;
+    u32 curVtxBufPos = vtxBufsPos;
+    u32 curIdxBufPos = idxBufsPos;
+
+    for (const auto &mesh : model.meshes)
+    {
+        // ------
+        u32 vtxCount = mesh.vertices.size();
+        u32 idxCount = mesh.indices.size();
+
+        curVtxBufPos = align(curVtxBufPos, 0x40);
+
+        pack_int(data, curVtxBufPos - curPos, false);
+        curPos += 4;
+        pack_int(data, vtxCount, false);
+        curPos += 4;
+
+        curVtxBufPos += 0x20 * vtxCount;
+        // ------
+
+        // ------
+        curIdxBufPos = align(curIdxBufPos, 0x20);
+        pack_int(data, curIdxBufPos - curPos, false);
+        curPos += 4;
+        pack_int(data, idxCount, false);
+        curPos += 4;
+        curIdxBufPos += 4 * idxCount;
+        // ------
+
+        pack_float(data, mesh.scale.x, false);
+        pack_float(data, mesh.scale.y, false);
+        pack_float(data, mesh.scale.z, false);
+        curPos += 4 * 3;
+
+        pack_float(data, mesh.rotate.x, false);
+        pack_float(data, mesh.rotate.y, false);
+        pack_float(data, mesh.rotate.z, false);
+        curPos += 4 * 3;
+
+        pack_float(data, mesh.translate.x, false);
+        pack_float(data, mesh.translate.y, false);
+        pack_float(data, mesh.translate.z, false);
+        curPos += 4 * 3;
+
+        pack_int(data, mesh.materialIdx, false);
+        curPos += 4;
+    }
+
+    u32 padSize = align(curPos, 0x40) - curPos;
+    add_padding(data, curPos, 0x40);
+    curPos += padSize;
+
+    if (curPos != vtxBufsPos)
+    {
+        RIO_LOG("Current position does not equal vtxBufsPos!\n");
+    }
+
+    for (const auto &mesh : model.meshes)
+    {
+        u32 padSize = align(curPos, 0x40) - curPos;
+        add_padding(data, curPos, 0x40);
+        curPos += padSize;
+
+        for (const auto &vertex : mesh.vertices)
+        {
+            // Serialize vertex data into the buffer
+            pack_float(data, vertex.pos.x, false);
+            pack_float(data, vertex.pos.y, false);
+            pack_float(data, vertex.pos.z, false);
+
+            pack_float(data, vertex.tex_coord.x, false);
+            pack_float(data, vertex.tex_coord.y, false);
+
+            pack_float(data, vertex.normal.x, false);
+            pack_float(data, vertex.normal.y, false);
+            pack_float(data, vertex.normal.z, false);
+        }
+
+        curPos += 0x20 * mesh.vertices.size();
+    }
+
+    if (curPos != curVtxBufPos)
+    {
+        RIO_LOG("Current position does not equal curVtxBufPos\n");
+    }
+
+    padSize = align(curPos, 0x20) - curPos;
+    add_padding(data, curPos, 0x20);
+    curPos += padSize;
+
+    if (curPos != idxBufsPos)
+    {
+        RIO_LOG("Current position does not equal idxBufsPos\n");
+    }
+
+    for (const auto &mesh : model.meshes)
+    {
+        padSize = align(curPos, 0x20) - curPos;
+        add_padding(data, curPos, 0x20);
+        curPos += padSize;
+        pack_indices(data, mesh.indices, false);
+        curPos += 4 * mesh.indices.size();
+    }
+
+    if (curPos != curIdxBufPos)
+    {
+        RIO_LOG("Current position does not equal curIdxBufPos\n");
+    }
+
+    if (curPos != materialsPos)
+    {
+        RIO_LOG("Current position does not equal materialsPos\n");
+    }
+
+    if (curPos != data.size())
+    {
+        RIO_LOG("Current position does not equal data.size\n");
+    }
+
+    curPos = materialsPos;
+    u32 curTexturePos = texturesPos;
+    u32 curStringPos = stringsPos;
+
+    for (const auto &material : model.materials)
+    {
+        u32 materialNameLen = material.name.size() + 1;
+        u32 shaderNameLen = material.shaderName.size() + 1;
+        u32 textureCount = material.textures.size();
+
+        pack_int(data, curStringPos - curPos, false);
+        curPos += 4;
+        pack_int(data, materialNameLen, false);
+        curPos += 4;
+        curStringPos += materialNameLen;
+
+        pack_int(data, curStringPos - curPos, false);
+        curPos += 4;
+        pack_int(data, shaderNameLen, false);
+        curPos += 4;
+        curStringPos += shaderNameLen;
+
+        for (const auto &texture : material.textures)
+        {
+            curStringPos += texture.name.length() + 1;
+            curStringPos += texture.samplerName.length() + 1;
+        }
+
+        pack_int(data, curTexturePos - curPos, false);
+        curPos += 4;
+        pack_int(data, textureCount, false);
+        curPos += 4;
+        curTexturePos += 0x48 * textureCount;
+
+        data.resize(data.size() + 16, 0x00);
+        curPos += 16;
+
+        u32 flags = 0;
+
+        if (material.isVisible)
+            flags |= 1;
+
+        pack_uint16(data, flags, false);
+        curPos += 2;
+
+        u32 renderFlags = 0;
+
+        if (material.isTranslucent)
+            renderFlags |= rio::mdl::res::Material::TRANSLUCENT;
+
+        if (material.depthTestEnable)
+            renderFlags |= rio::mdl::res::Material::DEPTH_TEST_ENABLE;
+
+        if (material.depthWriteEnable)
+            renderFlags |= rio::mdl::res::Material::DEPTH_WRITE_ENABLE;
+
+        if (material.blendEnable)
+            renderFlags |= rio::mdl::res::Material::BLEND_ENABLE;
+
+        if (material.alphaTestEnable)
+            renderFlags |= 0x0008;
+
+        if (material.colorMaskR)
+            renderFlags |= rio::mdl::res::Material::COLOR_MASK_R;
+
+        if (material.colorMaskG)
+            renderFlags |= rio::mdl::res::Material::COLOR_MASK_G;
+
+        if (material.colorMaskB)
+            renderFlags |= rio::mdl::res::Material::COLOR_MASK_B;
+
+        if (material.colorMaskA)
+            renderFlags |= rio::mdl::res::Material::COLOR_MASK_A;
+
+        if (material.stencilTestEnable)
+            renderFlags |= rio::mdl::res::Material::STENCIL_TEST_ENABLE;
+
+        if (material.polygonOffsetEnable)
+            renderFlags |= rio::mdl::res::Material::POLYGON_OFFSET_ENABLE;
+
+        if (material.polygonOffsetPointLineEnable)
+            renderFlags |= rio::mdl::res::Material::POLYGON_OFFSET_POINT_LINE_ENABLE;
+
+        pack_uint16(data, renderFlags, false);
+        curPos += 2;
+
+        pack_int(data, material.depthFunc, false);
+        curPos += 4;
+
+        pack_int(data, material.cullingMode, false);
+        curPos += 4;
+
+        pack_int(data, material.blendFactorSrcRGB, false);
+        curPos += 4;
+
+        pack_int(data, material.blendFactorSrcA, false);
+        curPos += 4;
+
+        pack_int(data, material.blendFactorDstRGB, false);
+        curPos += 4;
+
+        pack_int(data, material.blendFactorDstA, false);
+        curPos += 4;
+
+        pack_int(data, material.blendEquationRGB, false);
+        curPos += 4;
+
+        pack_int(data, material.blendEquationA, false);
+        curPos += 4;
+
+        pack_float(data, material.blendConstantColor.r / 255, false);
+        pack_float(data, material.blendConstantColor.g / 255, false);
+        pack_float(data, material.blendConstantColor.b / 255, false);
+        pack_float(data, material.blendConstantColor.a / 255, false);
+        curPos += 4 * 4;
+
+        pack_int(data, material.alphaTestFunc, false);
+        curPos += 4;
+
+        pack_int(data, material.alphaTestRef, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilTestFunc, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilTestRef, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilTestMask, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilOpFail, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilOpZFail, false);
+        curPos += 4;
+
+        pack_int(data, material.stencilOpZPass, false);
+        curPos += 4;
+
+        pack_int(data, material.polygonMode, false);
+        curPos += 4;
+    }
+
+    if (curPos != texturesPos)
+    {
+        RIO_LOG("Current position doesn't equal texturesPos!!\n");
+    }
+
+    curStringPos = stringsPos;
+
+    for (const auto &material : model.materials)
+    {
+        curStringPos += material.name.size() + 1 + material.shaderName.size() + 1;
+
+        for (const auto &texture : material.textures)
+        {
+            u32 textureNameLen = texture.name.size() + 1;
+            u32 samplerNameLen = texture.samplerName.size() + 1;
+
+            pack_int(data, curStringPos - curPos, false);
+            curPos += 4;
+            pack_int(data, textureNameLen, false);
+            curPos += 4;
+            curStringPos += textureNameLen;
+
+            pack_int(data, curStringPos - curPos, false);
+            curPos += 4;
+            pack_int(data, samplerNameLen, false);
+            curPos += 4;
+            curStringPos += samplerNameLen;
+
+            pack_int(data, texture.magFilter, false);
+            curPos += 4;
+
+            pack_int(data, texture.minFilter, false);
+            curPos += 4;
+
+            pack_int(data, texture.mipFilter, false);
+            curPos += 4;
+
+            pack_int(data, texture.maxAniso, false);
+            curPos += 4;
+
+            pack_int(data, texture.wrapX, false);
+            curPos += 4;
+
+            pack_int(data, texture.wrapY, false);
+            curPos += 4;
+
+            pack_int(data, texture.wrapZ, false);
+            curPos += 4;
+
+            pack_float(data, texture.borderColor.r / 255, false);
+            pack_float(data, texture.borderColor.g / 255, false);
+            pack_float(data, texture.borderColor.b / 255, false);
+            pack_float(data, texture.borderColor.a / 255, false);
+            curPos += 4 * 4;
+
+            pack_int(data, texture.minLOD, false);
+            curPos += 4;
+
+            pack_int(data, texture.maxLOD, false);
+            curPos += 4;
+
+            pack_int(data, texture.LODBias, false);
+            curPos += 4;
+        }
+    }
+
+    if (curPos != curTexturePos)
+    {
+        RIO_LOG("Current position doesn't equal current texture position!");
+    }
+
+    if (curPos != stringsPos)
+    {
+        RIO_LOG("Current position doesn't equal current strings position!");
+    }
+
+    for (const auto &material : model.materials)
+    {
+        data.insert(data.end(), material.name.begin(), material.name.end());
+        data.push_back('\0');
+        data.insert(data.end(), material.shaderName.begin(), material.shaderName.end());
+        data.push_back('\0');
+
+        curPos += material.name.size() + 1 + material.shaderName.size() + 1;
+
+        for (const auto &texture : material.textures)
+        {
+            data.insert(data.end(), texture.name.begin(), texture.name.end());
+            data.push_back('\0');
+            data.insert(data.end(), texture.samplerName.begin(), texture.samplerName.end());
+            data.push_back('\0');
+
+            curPos += texture.name.size() + 1;
+            curPos += texture.samplerName.size() + 1;
+        }
+    }
+
+    if (curPos != curStringPos)
+    {
+        RIO_LOG("Current position doesn't equal current string position!");
+    }
+
+    if (curPos != fileSize)
+    {
+        RIO_LOG("Current position doesn't equal filesize!");
+    }
+
+    if (curPos != data.size())
+    {
+        RIO_LOG("Current position doesn't equal data.size()!");
+    }
+
+    rio::FileHandle fileHandle;
+    rio::FileDeviceMgr::instance()->getNativeFileDevice()->open(&fileHandle, fileName + "_LE.rmdl", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
+    rio::FileDeviceMgr::instance()->getNativeFileDevice()->write(&fileHandle, data.data(), data.size());
+    rio::FileDeviceMgr::instance()->getNativeFileDevice()->close(&fileHandle);
+}
+
+std::unique_ptr<Model> OBJToRioModel(std::string objFileName, std::string mtlFileName)
+{
+    OBJReturnResult returnResult = ReadOBJ(objFileName);
 
     Mesh mesh;
     mesh.vertices = returnResult.vertices;
     mesh.indices = returnResult.indices;
     mesh.materialIdx = 0;
 
-    Texture texture;
-    texture.name = "emerald";
-    texture.samplerName = "texture1";
-    texture.wrapX = rio::TEX_WRAP_MODE_MIRROR;
-    texture.wrapY = rio::TEX_WRAP_MODE_MIRROR;
-    texture.wrapZ = rio::TEX_WRAP_MODE_REPEAT;
-    texture.mipFilter = rio::TEX_MIP_FILTER_MODE_NONE;
-
     // TODO: read from .mtl file.
 
-    Material material;
-    material.name = "coin";
-    material.shaderName = "base/BasicShading";
-    material.textures = {texture};
-
-    Model model;
-    model.meshes = {mesh};
-    model.materials = {material};
-
-    // Packing little endian
-    {
-        u8 meshesCount = model.meshes.size();
-        u8 materialsCount = model.materials.size();
-
-        u32 meshesPos = 0x20;
-
-        u32 vtxBufsPos = meshesPos;
-        vtxBufsPos += 0x38 * meshesCount;
-        vtxBufsPos = align(vtxBufsPos, 0x40);
-
-        u32 idxBufsPos = vtxBufsPos;
-        for (const auto &mesh : model.meshes)
-        {
-            idxBufsPos = align(idxBufsPos, 0x40);
-            idxBufsPos += 0x20 * mesh.vertices.size();
-        }
-        idxBufsPos = align(idxBufsPos, 0x20);
-
-        u32 materialsPos = idxBufsPos;
-        for (const auto &mesh : model.meshes)
-        {
-            materialsPos = align(materialsPos, 0x20);
-            materialsPos += 4 * mesh.indices.size();
-        }
-
-        u32 texturesPos = materialsPos;
-        texturesPos += 0x80 * materialsCount;
-
-        u32 stringsPos = texturesPos;
-        for (const auto &material : model.materials)
-            stringsPos += 0x48 * material.textures.size();
-
-        u32 fileSize = stringsPos;
-
-        for (const auto &material : model.materials)
-        {
-            fileSize += material.name.size() + 1;
-            fileSize += material.shaderName.size() + 1;
-            for (const auto &texture : material.textures)
-            {
-                fileSize += texture.name.size() + 1;
-                fileSize += texture.samplerName.size() + 1;
-            }
-        }
-
-        RIO_LOG("File Size: %d\n", fileSize);
-
-        std::vector<u8> data;
-
-        pack_string(data, "riomodel");
-        pack_int(data, 0x01000000, false);
-        pack_int(data, fileSize, false);
-
-        if (data.size() != 0x10)
-        {
-            RIO_LOG("Wrong data size! 0x10\n");
-            return;
-        }
-
-        pack_int(data, meshesPos - 0x10, false);
-        pack_int(data, meshesCount, false);
-
-        if (data.size() != 0x18)
-        {
-            RIO_LOG("Wrong data size! 0x18\n");
-        }
-
-        pack_int(data, materialsPos - 0x18, false);
-        pack_int(data, materialsCount, false);
-
-        if (data.size() != meshesPos)
-        {
-            RIO_LOG("Data size doesn't equal meshesPos!\n");
-        }
-
-        u32 curPos = meshesPos;
-        u32 curVtxBufPos = vtxBufsPos;
-        u32 curIdxBufPos = idxBufsPos;
-
-        for (const auto &mesh : model.meshes)
-        {
-            // ------
-            u32 vtxCount = mesh.vertices.size();
-            u32 idxCount = mesh.indices.size();
-
-            curVtxBufPos = align(curVtxBufPos, 0x40);
-
-            pack_int(data, curVtxBufPos - curPos, false);
-            curPos += 4;
-            pack_int(data, vtxCount, false);
-            curPos += 4;
-
-            curVtxBufPos += 0x20 * vtxCount;
-            // ------
-
-            // ------
-            curIdxBufPos = align(curIdxBufPos, 0x20);
-            pack_int(data, curIdxBufPos - curPos, false);
-            curPos += 4;
-            pack_int(data, idxCount, false);
-            curPos += 4;
-            curIdxBufPos += 4 * idxCount;
-            // ------
-
-            pack_float(data, mesh.scale.x, false);
-            pack_float(data, mesh.scale.y, false);
-            pack_float(data, mesh.scale.z, false);
-            curPos += 4 * 3;
-
-            pack_float(data, mesh.rotate.x, false);
-            pack_float(data, mesh.rotate.y, false);
-            pack_float(data, mesh.rotate.z, false);
-            curPos += 4 * 3;
-
-            pack_float(data, mesh.translate.x, false);
-            pack_float(data, mesh.translate.y, false);
-            pack_float(data, mesh.translate.z, false);
-            curPos += 4 * 3;
-
-            pack_int(data, mesh.materialIdx, false);
-            curPos += 4;
-        }
-
-        u32 padSize = align(curPos, 0x40) - curPos;
-        add_padding(data, curPos, 0x40);
-        curPos += padSize;
-
-        if (curPos != vtxBufsPos)
-        {
-            RIO_LOG("Current position does not equal vtxBufsPos!\n");
-        }
-
-        for (const auto &mesh : model.meshes)
-        {
-            u32 padSize = align(curPos, 0x40) - curPos;
-            add_padding(data, curPos, 0x40);
-            curPos += padSize;
-
-            for (const auto &vertex : mesh.vertices)
-            {
-                // Serialize vertex data into the buffer
-                pack_float(data, vertex.pos.x, false);
-                pack_float(data, vertex.pos.y, false);
-                pack_float(data, vertex.pos.z, false);
-
-                pack_float(data, vertex.tex_coord.x, false);
-                pack_float(data, vertex.tex_coord.y, false);
-
-                pack_float(data, vertex.normal.x, false);
-                pack_float(data, vertex.normal.y, false);
-                pack_float(data, vertex.normal.z, false);
-            }
-
-            curPos += 0x20 * mesh.vertices.size();
-        }
-
-        if (curPos != curVtxBufPos)
-        {
-            RIO_LOG("Current position does not equal curVtxBufPos\n");
-        }
-
-        padSize = align(curPos, 0x20) - curPos;
-        add_padding(data, curPos, 0x20);
-        curPos += padSize;
-
-        if (curPos != idxBufsPos)
-        {
-            RIO_LOG("Current position does not equal idxBufsPos\n");
-        }
-
-        for (const auto &mesh : model.meshes)
-        {
-            padSize = align(curPos, 0x20) - curPos;
-            add_padding(data, curPos, 0x20);
-            curPos += padSize;
-            pack_indices(data, mesh.indices, false);
-            curPos += 4 * mesh.indices.size();
-        }
-
-        if (curPos != curIdxBufPos)
-        {
-            RIO_LOG("Current position does not equal curIdxBufPos\n");
-        }
-
-        if (curPos != materialsPos)
-        {
-            RIO_LOG("Current position does not equal materialsPos\n");
-        }
-
-        if (curPos != data.size())
-        {
-            RIO_LOG("Current position does not equal data.size\n");
-        }
-
-        curPos = materialsPos;
-        u32 curTexturePos = texturesPos;
-        u32 curStringPos = stringsPos;
-
-        for (const auto &material : model.materials)
-        {
-            u32 materialNameLen = material.name.size() + 1;
-            u32 shaderNameLen = material.shaderName.size() + 1;
-            u32 textureCount = material.textures.size();
-
-            pack_int(data, curStringPos - curPos, false);
-            curPos += 4;
-            pack_int(data, materialNameLen, false);
-            curPos += 4;
-            curStringPos += materialNameLen;
-
-            pack_int(data, curStringPos - curPos, false);
-            curPos += 4;
-            pack_int(data, shaderNameLen, false);
-            curPos += 4;
-            curStringPos += shaderNameLen;
-
-            for (const auto &texture : material.textures)
-            {
-                curStringPos += texture.name.length() + 1;
-                curStringPos += texture.samplerName.length() + 1;
-            }
-
-            pack_int(data, curTexturePos - curPos, false);
-            curPos += 4;
-            pack_int(data, textureCount, false);
-            curPos += 4;
-            curTexturePos += 0x48 * textureCount;
-
-            data.resize(data.size() + 16, 0x00);
-            curPos += 16;
-
-            u32 flags = 0;
-
-            if (material.isVisible)
-                flags |= 1;
-
-            pack_uint16(data, flags, false);
-            curPos += 2;
-
-            u32 renderFlags = 0;
-
-            if (material.isTranslucent)
-                renderFlags |= rio::mdl::res::Material::TRANSLUCENT;
-
-            if (material.depthTestEnable)
-                renderFlags |= rio::mdl::res::Material::DEPTH_TEST_ENABLE;
-
-            if (material.depthWriteEnable)
-                renderFlags |= rio::mdl::res::Material::DEPTH_WRITE_ENABLE;
-
-            if (material.blendEnable)
-                renderFlags |= rio::mdl::res::Material::BLEND_ENABLE;
-
-            if (material.alphaTestEnable)
-                renderFlags |= 0x0008;
-
-            if (material.colorMaskR)
-                renderFlags |= rio::mdl::res::Material::COLOR_MASK_R;
-
-            if (material.colorMaskG)
-                renderFlags |= rio::mdl::res::Material::COLOR_MASK_G;
-
-            if (material.colorMaskB)
-                renderFlags |= rio::mdl::res::Material::COLOR_MASK_B;
-
-            if (material.colorMaskA)
-                renderFlags |= rio::mdl::res::Material::COLOR_MASK_A;
-
-            if (material.stencilTestEnable)
-                renderFlags |= rio::mdl::res::Material::STENCIL_TEST_ENABLE;
-
-            if (material.polygonOffsetEnable)
-                renderFlags |= rio::mdl::res::Material::POLYGON_OFFSET_ENABLE;
-
-            if (material.polygonOffsetPointLineEnable)
-                renderFlags |= rio::mdl::res::Material::POLYGON_OFFSET_POINT_LINE_ENABLE;
-
-            pack_uint16(data, renderFlags, false);
-            curPos += 2;
-
-            pack_int(data, material.depthFunc, false);
-            curPos += 4;
-
-            pack_int(data, material.cullingMode, false);
-            curPos += 4;
-
-            pack_int(data, material.blendFactorSrcRGB, false);
-            curPos += 4;
-
-            pack_int(data, material.blendFactorSrcA, false);
-            curPos += 4;
-
-            pack_int(data, material.blendFactorDstRGB, false);
-            curPos += 4;
-
-            pack_int(data, material.blendFactorDstA, false);
-            curPos += 4;
-
-            pack_int(data, material.blendEquationRGB, false);
-            curPos += 4;
-
-            pack_int(data, material.blendEquationA, false);
-            curPos += 4;
-
-            pack_float(data, material.blendConstantColor.r / 255, false);
-            pack_float(data, material.blendConstantColor.g / 255, false);
-            pack_float(data, material.blendConstantColor.b / 255, false);
-            pack_float(data, material.blendConstantColor.a / 255, false);
-            curPos += 4 * 4;
-
-            pack_int(data, material.alphaTestFunc, false);
-            curPos += 4;
-
-            pack_int(data, material.alphaTestRef, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilTestFunc, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilTestRef, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilTestMask, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilOpFail, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilOpZFail, false);
-            curPos += 4;
-
-            pack_int(data, material.stencilOpZPass, false);
-            curPos += 4;
-
-            pack_int(data, material.polygonMode, false);
-            curPos += 4;
-        }
-
-        if (curPos != texturesPos)
-        {
-            RIO_LOG("Current position doesn't equal texturesPos!!\n");
-        }
-
-        curStringPos = stringsPos;
-
-        for (const auto &material : model.materials)
-        {
-            curStringPos += material.name.size() + 1 + material.shaderName.size() + 1;
-
-            for (const auto &texture : material.textures)
-            {
-                u32 textureNameLen = texture.name.size() + 1;
-                u32 samplerNameLen = texture.samplerName.size() + 1;
-
-                pack_int(data, curStringPos - curPos, false);
-                curPos += 4;
-                pack_int(data, textureNameLen, false);
-                curPos += 4;
-                curStringPos += textureNameLen;
-
-                pack_int(data, curStringPos - curPos, false);
-                curPos += 4;
-                pack_int(data, samplerNameLen, false);
-                curPos += 4;
-                curStringPos += samplerNameLen;
-
-                pack_int(data, texture.magFilter, false);
-                curPos += 4;
-
-                pack_int(data, texture.minFilter, false);
-                curPos += 4;
-
-                pack_int(data, texture.mipFilter, false);
-                curPos += 4;
-
-                pack_int(data, texture.maxAniso, false);
-                curPos += 4;
-
-                pack_int(data, texture.wrapX, false);
-                curPos += 4;
-
-                pack_int(data, texture.wrapY, false);
-                curPos += 4;
-
-                pack_int(data, texture.wrapZ, false);
-                curPos += 4;
-
-                pack_float(data, texture.borderColor.r / 255, false);
-                pack_float(data, texture.borderColor.g / 255, false);
-                pack_float(data, texture.borderColor.b / 255, false);
-                pack_float(data, texture.borderColor.a / 255, false);
-                curPos += 4 * 4;
-
-                pack_int(data, texture.minLOD, false);
-                curPos += 4;
-
-                pack_int(data, texture.maxLOD, false);
-                curPos += 4;
-
-                pack_int(data, texture.LODBias, false);
-                curPos += 4;
-            }
-        }
-
-        if (curPos != curTexturePos)
-        {
-            RIO_LOG("Current position doesn't equal current texture position!");
-        }
-
-        if (curPos != stringsPos)
-        {
-            RIO_LOG("Current position doesn't equal current strings position!");
-        }
-
-        for (const auto &material : model.materials)
-        {
-            data.insert(data.end(), material.name.begin(), material.name.end());
-            data.push_back('\0');
-            data.insert(data.end(), material.shaderName.begin(), material.shaderName.end());
-            data.push_back('\0');
-
-            curPos += material.name.size() + 1 + material.shaderName.size() + 1;
-
-            for (const auto &texture : material.textures)
-            {
-                data.insert(data.end(), texture.name.begin(), texture.name.end());
-                data.push_back('\0');
-                data.insert(data.end(), texture.samplerName.begin(), texture.samplerName.end());
-                data.push_back('\0');
-
-                curPos += texture.name.size() + 1;
-                curPos += texture.samplerName.size() + 1;
-            }
-        }
-
-        if (curPos != curStringPos)
-        {
-            RIO_LOG("Current position doesn't equal current string position!");
-        }
-
-        if (curPos != fileSize)
-        {
-            RIO_LOG("Current position doesn't equal filesize!");
-        }
-
-        if (curPos != data.size())
-        {
-            RIO_LOG("Current position doesn't equal data.size()!");
-        }
-
-        rio::FileHandle fileHandle;
-        rio::FileDeviceMgr::instance()->getNativeFileDevice()->open(&fileHandle, fileName + "_LE.rmdl", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
-        rio::FileDeviceMgr::instance()->getNativeFileDevice()->write(&fileHandle, data.data(), data.size());
-        rio::FileDeviceMgr::instance()->getNativeFileDevice()->close(&fileHandle);
-    }
+    auto model = std::make_unique<Model>();
+    model->meshes = {mesh};
+    model->materials = ReadMTL(mtlFileName);
+
+    return std::move(model);
 }
 
 size_t ConvertGtxToRtx(u8 *fileBuffer, std::vector<u8> &fillBuffer)

@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <functional>
 
+#include <helpers/editor/EditorMgr.h>
+
 #include <helpers/properties/MiiHeadProperty.h>
 #include <helpers/properties/audio/AudioProperty.h>
 #include <helpers/properties/map/CameraProperty.h>
@@ -20,7 +22,11 @@
 
 class NodeMgr
 {
+    friend class EditorMgr;
+
 public:
+    using PropertyCreateFunc = std::function<std::unique_ptr<Property>(std::shared_ptr<Node>)>;
+
     static bool createSingleton();
     static bool destorySingleton();
 
@@ -28,42 +34,68 @@ public:
     static bool DeleteNode(const int pID);
 
     bool LoadFromFile(std::string fileName);
+
     bool SaveToFile();
 
-    std::unordered_map<int, std::shared_ptr<Node>> mNodes = {};
-
     static inline NodeMgr *instance() { return mInstance; };
-    static inline int GetNodeCount() { return mInstance ? mInstance->mNodes.size() : 0; };
+    static inline int GetNodeCount() { return mInstance->mNodes.size(); };
     static inline void ClearAllNodes() { return mInstance->mNodes.clear(); };
+
+    /// @brief Finds a node with a certain ID.
+    /// @param pID ID to look for.
+    /// @return Found node pointer.
     static inline std::shared_ptr<Node> GetNodeByID(int pID) { return mInstance->mNodes.at(pID); };
 
+    /// @brief Should be ran every frame. Updates all properties throughout the scene.
     void Update();
+
+    /// @brief Should be ran in a task's `prepare_()` method. Starts all properties throughout the scene.
     void Start();
 
+    /// @brief Gets the global `CameraProperty`.
+    /// @return Pointer to global `CameraProperty`
     static inline CameraProperty *GetGlobalCamera() { return mInstance->mCamera; };
 
-    using PropertyCreateFunc = std::function<std::unique_ptr<Property>(std::shared_ptr<Node>)>;
-    std::unordered_map<std::string, PropertyCreateFunc> mPropertyFactory = {
-        {"Audio", [](std::shared_ptr<Node> node)
-         { return std::make_unique<AudioProperty>(node); }},
-        {"Camera", [](std::shared_ptr<Node> node)
-         { return std::make_unique<CameraProperty>(node); }},
-        {"Primitive", [](std::shared_ptr<Node> node)
-         { return std::make_unique<PrimitiveProperty>(node); }},
-        {"MiiHead", [](std::shared_ptr<Node> node)
-         { return std::make_unique<MiiHeadProperty>(node); }},
-        {"ExampleEnum", [](std::shared_ptr<Node> node)
-         { return std::make_unique<ExampleEnumProperty>(node); }},
-        {"Mesh", [](std::shared_ptr<Node> node)
-         { return std::make_unique<MeshProperty>(node); }}};
+    /// @brief Gets the global `SunProperty`.
+    /// @return Pointer to global `SunProperty`.
+    static inline CameraProperty *GetGlobalSun() { return mInstance->mCamera; };
 
-    std::vector<std::string> GetAvailableProperties() const
+    /// @brief Registers a property into the property map.
+    /// @param name Name that'll be used for property creation (Map YAML, `CreateProperty()`, etc.)
+    /// @param func Property create function.
+    static inline void RegisterProperty(const std::string name, PropertyCreateFunc func)
     {
-        std::vector<std::string> properties;
-        for (const auto &pair : mPropertyFactory)
-            properties.push_back(pair.first);
+        mInstance->mPropertyMap[name] = func;
+    };
 
-        return properties;
+    /// @brief Creates a property and sets ownership to `node`
+    /// @param name Property global name to create.
+    /// @param node Parent node. Created property will be attatched to it.
+    /// @return Created property pointer.
+    static inline std::unique_ptr<Property> CreateProperty(const std::string name, std::shared_ptr<Node> node)
+    {
+        auto it = mInstance->mPropertyMap.find(name);
+        if (it != mInstance->mPropertyMap.end())
+        {
+            return it->second(node);
+        }
+
+        RIO_LOG("[NODEMGR] No property by the name: %s exists.", name.c_str());
+        return nullptr;
+    }
+
+    /// @brief Returns all property names for use.
+    /// @return Vector containing all property names for use.
+    std::vector<std::string> GetAvailablePropertyNames() const
+    {
+        std::vector<std::string> retVal;
+
+        for (const auto &val : mPropertyMap)
+        {
+            retVal.emplace_back(val.first);
+        }
+
+        return retVal;
     }
 
 private:
@@ -72,6 +104,9 @@ private:
     CameraProperty *mCamera = nullptr;
 
     bool mInitialized = false;
+
+    std::unordered_map<int, std::shared_ptr<Node>> mNodes = {};
+    std::unordered_map<std::string, PropertyCreateFunc> mPropertyMap = {};
 };
 
 #endif // COMMONNODEHELPER_H

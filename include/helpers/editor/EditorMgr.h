@@ -1,10 +1,11 @@
+#ifndef EDITORHELPER_H
+#define EDITORHELPER_H
+
 #include <string>
 #include <helpers/common/Node.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <gpu/rio_RenderBuffer.h>
 #include <gpu/rio_RenderTarget.h>
 #include <filedevice/rio_FileDevice.h>
@@ -26,6 +27,11 @@
 #include <helpers/common/StringMgr.h>
 #include <helpers/editor/ConversionMgr.h>
 
+namespace ImGui
+{
+    class FileBrowser;
+}
+
 class EditorMgr
 {
 public:
@@ -41,6 +47,7 @@ public:
     void SetupFrameBuffer();
     void Update();
     void MakeFontIcon(const char *characters);
+    std::string OpenFileDialog();
 
     std::string currentAssetsEditorDirectory = "/";
     std::string assetsWindowString = "Assets (/)";
@@ -59,23 +66,71 @@ private:
     rio::FileDevice *mFileDevice;
     rio::FileHandle fileHandle;
 
+    ImGui::FileBrowser *fileBrowser;
+
     ImGuiIO io;
 
     void DrawStringsWindow();
     void DrawTexturesWindow();
+    void DrawModelsWindow();
+
+    enum ModelType
+    {
+        MODEL_TYPE_RMDL,
+        MODEL_TYPE_OBJ,
+        MODEL_TYPE_UNK
+    };
+
+    Texture exampleTexture;
+
+    bool mModelsWindowEnabled;
+    std::string mModelsWindowName = "Model Viewer";
+    std::string mModelsFolderPath = "";
+    std::unordered_map<std::string, ModelType> mModelsCachedContent;
+    std::filesystem::file_time_type mModelsLastWriteTime;
+    std::unique_ptr<Model> mPreviewModel = nullptr;
+    std::unordered_map<rio::TexXYFilterMode, std::string> mModelsTexXYMap = {
+        {rio::TEX_XY_FILTER_MODE_POINT, "TEX_XY_FILTER_MODE_POINT"},
+        {rio::TEX_XY_FILTER_MODE_LINEAR, "TEX_XY_FILTER_MODE_LINEAR"}};
+    std::unordered_map<rio::TexMipFilterMode, std::string> mModelsMipFilterMap = {
+        {rio::TexMipFilterMode::TEX_MIP_FILTER_MODE_NONE, "TEX_MIP_FILTER_MODE_NONE"},
+        {rio::TexMipFilterMode::TEX_MIP_FILTER_MODE_POINT, "TEX_MIP_FILTER_MODE_POINT"},
+        {rio::TexMipFilterMode::TEX_MIP_FILTER_MODE_LINEAR, "TEX_MIP_FILTER_MODE_LINEAR"}};
+    std::unordered_map<rio::TexAnisoRatio, std::string> mModelsAnisoMap = {
+        {rio::TexAnisoRatio::TEX_ANISO_1_TO_1, "TEX_ANISO_1_TO_1"},
+        {rio::TexAnisoRatio::TEX_ANISO_2_TO_1, "TEX_ANISO_2_TO_1"},
+        {rio::TexAnisoRatio::TEX_ANISO_4_TO_1, "TEX_ANISO_4_TO_1"},
+        {rio::TexAnisoRatio::TEX_ANISO_8_TO_1, "TEX_ANISO_8_TO_1"},
+        {rio::TexAnisoRatio::TEX_ANISO_16_TO_1, "TEX_ANISO_16_TO_1"}};
+    std::unordered_map<rio::TexWrapMode, std::string> mModelsWrapModeMap = {
+        {rio::TEX_WRAP_MODE_REPEAT, "TEX_WRAP_MODE_REPEAT"},
+        {rio::TEX_WRAP_MODE_MIRROR, "TEX_WRAP_MODE_MIRROR"},
+        {rio::TEX_WRAP_MODE_CLAMP, "TEX_WRAP_MODE_CLAMP"},
+        {rio::TEX_WRAP_MODE_MIRROR_ONCE, "TEX_WRAP_MODE_MIRROR_ONCE"},
+        {rio::TEX_WRAP_MODE_CLAMP_HALF_BORDER, "TEX_WRAP_MODE_CLAMP_HALF_BORDER"},
+        {rio::TEX_WRAP_MODE_MIRROR_ONCE_HALF_BORDER, "TEX_WRAP_MODE_MIRROR_ONCE_HALF_BORDER"},
+        {rio::TEX_WRAP_MODE_CLAMP_BORDER, "TEX_WRAP_MODE_CLAMP_BORDER"},
+        {rio::TEX_WRAP_MODE_MIRROR_ONCE_BORDER, "TEX_WRAP_MODE_MIRROR_ONCE_BORDER"}};
+
+    void UpdateModelsDirCache();
 
     bool mStringsWindowEnabled;
     bool mStringsUnsaved = false;
+    bool mStringsNewModal = false;
     std::string mSelectedStringsID;
     std::string mSelectedStringKey;
-    std::string mSelectedStringContent;
     std::string mStringFolderPath = "";
     std::string mStringWindowName = "String Viewer";
+    std::string mStringsNewModalFileName = "";
     std::vector<std::filesystem::path> mStringCachedContents;
     std::filesystem::file_time_type mStringLastWriteTime;
     StringDictionary mCurrentStringDictionary;
     void UpdateStringsDirCache();
-    static int UnsavedStringCallback(ImGuiInputTextCallbackData *data) { mInstance->mStringsUnsaved = true; };
+    static int UnsavedStringCallback(ImGuiInputTextCallbackData *data)
+    {
+        mInstance->mStringsUnsaved = true;
+        return 0;
+    };
 
     bool mTextureWindowEnabled;
     std::string mTextureFolderPath = "";
@@ -172,3 +227,5 @@ private:
     void UpdateTexturesDirCache();
     u8 *ConvertDDSToGtx();
 };
+
+#endif // EDITORHELPER_H

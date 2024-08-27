@@ -2,7 +2,9 @@
 #define PRIMITIVEPROPERTY_H
 
 #include <helpers/properties/Property.h>
+
 #include <gfx/rio_Color.h>
+#include <gfx/rio_PrimitiveRenderer.h>
 
 class PrimitiveProperty : public Property
 {

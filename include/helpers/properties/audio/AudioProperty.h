@@ -5,8 +5,14 @@
 #include <audio/rio_AudioMgr.h>
 #include <audio/rio_AudioSrc.h>
 #include <gfx/rio_Camera.h>
+
+#include <helpers/common/NodeMgr.h>
 #include <helpers/common/Node.h>
 #include <helpers/properties/Property.h>
+#include <helpers/properties/map/CameraProperty.h>
+
+#include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 class AudioProperty : public Property
 {

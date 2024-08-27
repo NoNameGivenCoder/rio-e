@@ -1,7 +1,5 @@
 #include <helpers/editor/EditorMgr.h>
 #include <helpers/properties/Property.h>
-#include <helpers/properties/audio/AudioProperty.h>
-#include <string>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -14,6 +12,9 @@
 #include <filesystem>
 #include <helpers/editor/Texture2DUtil.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include <span>
+#include <memory>
+#include <imfilebrowser.h>
 
 EditorMgr *EditorMgr::mInstance = nullptr;
 
@@ -35,6 +36,8 @@ bool EditorMgr::createSingleton()
     mInstance->mFileDevice = rio::FileDeviceMgr::instance()->getMainFileDevice();
     mInstance->mTextureFolderPath = mInstance->mFileDevice->getNativePath("textures");
     mInstance->mStringFolderPath = mInstance->mFileDevice->getNativePath("lang");
+    mInstance->mModelsFolderPath = mInstance->mFileDevice->getNativePath("models");
+    mInstance->fileBrowser = new ImGui::FileBrowser();
 
     return true;
 }
@@ -46,6 +49,7 @@ bool EditorMgr::destorySingleton()
 
     delete mInstance->mpColorTexture;
     delete mInstance->mpDepthTexture;
+    delete mInstance->fileBrowser;
 
     delete mInstance;
     mInstance = nullptr;
@@ -159,13 +163,6 @@ void EditorMgr::UpdateTexturesDirCache()
             // Thank you https://github.com/aboood40091/Miyamoto-Next
             if (fileEntry.path().extension().string() == ".gtx")
             {
-                std::vector<u8> fillBuffer;
-                ConvertGtxToRtx(fileBuffer, fillBuffer);
-
-                mFileDevice->open(&fileHandle, "textures/" + fileEntry.path().filename().string() + ".rtx", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
-                mFileDevice->write(&fileHandle, fillBuffer.data(), fillBuffer.size());
-                mFileDevice->close(&fileHandle);
-
                 std::unique_ptr<rio::Texture2D> texture;
 
                 Texture2DUtil::createFromGTX(fileBuffer, &texture);
@@ -199,6 +196,27 @@ void EditorMgr::UpdateStringsDirCache()
         {
             StringMgr::instance()->LoadStrings(fileEntry.path().filename().string(), fileEntry.path().filename().string());
             mStringCachedContents.emplace_back(fileEntry.path().filename().string());
+        }
+    }
+}
+
+void EditorMgr::UpdateModelsDirCache()
+{
+    std::filesystem::file_time_type currentFileWriteTime = std::filesystem::last_write_time(mModelsFolderPath);
+
+    if (currentFileWriteTime != mModelsLastWriteTime)
+    {
+        mModelsLastWriteTime = currentFileWriteTime;
+        mModelsCachedContent.clear();
+
+        for (const auto &fileEntry : std::filesystem::directory_iterator(mModelsFolderPath))
+        {
+            if (fileEntry.path().extension().string() == ".rmdl")
+                mModelsCachedContent.emplace(fileEntry.path().filename().string(), MODEL_TYPE_RMDL);
+            else if (fileEntry.path().extension().string() == ".obj")
+                mModelsCachedContent.emplace(fileEntry.path().filename().string(), MODEL_TYPE_OBJ);
+            else
+                mModelsCachedContent.emplace(fileEntry.path().filename().string(), MODEL_TYPE_UNK);
         }
     }
 }
@@ -245,16 +263,7 @@ void EditorMgr::CreateEditorUI()
             {
                 ImGui::MenuItem(mTextureWindowName.c_str(), NULL, &mTextureWindowEnabled);
                 ImGui::MenuItem(mStringWindowName.c_str(), NULL, &mStringsWindowEnabled);
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("Model Testing"))
-            {
-                if (ImGui::MenuItem("Model Conversion"))
-                {
-                    OBJToRioModel("fs/content/models/Cylinder.obj");
-                }
-
+                ImGui::MenuItem(mModelsWindowName.c_str(), NULL, &mModelsWindowEnabled);
                 ImGui::EndMenu();
             }
 
@@ -355,7 +364,7 @@ void EditorMgr::CreateEditorUI()
             ImGui::SetCursorPos(centerPos);
 
             // Display the texture
-            ImGui::Image((void *)mpColorTexture->getNativeTextureHandle(), ImVec2(newWidth, newHeight), ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image((void *)(uint32_t)mpColorTexture->getNativeTextureHandle(), ImVec2(newWidth, newHeight), ImVec2(0, 0), ImVec2(1, 1));
 
             ImGui::End();
         }
@@ -377,10 +386,53 @@ void EditorMgr::CreateEditorUI()
         if (mStringsWindowEnabled)
             DrawStringsWindow();
 
+        if (mModelsWindowEnabled)
+            DrawModelsWindow();
+
         ImGui::End();
     }
 
+    if (mStringsNewModal)
+        ImGui::OpenPopup("New Strings File..");
+
+    ImGui::SetNextWindowSize(ImVec2(400, 130));
+    ImGui::SetNextWindowPos(ImVec2((ImGui::GetWindowSize().x - 400) / 2, (ImGui::GetWindowSize().y - 130) / 2));
+    if (ImGui::BeginPopupModal("New Strings File..", __null, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_Modal | ImGuiWindowFlags_NoMove))
+    {
+        ImGui::Text("Strings Filename");
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::InputText("String Input", &mStringsNewModalFileName);
+
+        float buttonWidth = ImGui::GetContentRegionAvail().x / 2;
+
+        ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 40);
+
+        // Close button
+        if (ImGui::Button("Close", ImVec2(buttonWidth, 30)))
+        {
+            mStringsNewModal = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        // Create Strings File button
+        if (ImGui::Button("Create Strings File", ImVec2(buttonWidth, 30)))
+        {
+            mFileDevice->open(&fileHandle, "lang/" + mStringsNewModalFileName + ".yaml", rio::FileDevice::FILE_OPEN_FLAG_CREATE);
+            mFileDevice->write(&fileHandle, reinterpret_cast<u8 *>((char *)("strings:\n New String (0): Hello World!")), strlen("strings:\n New String (0): Hello World!"));
+            mFileDevice->close(&fileHandle);
+
+            mStringsNewModal = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
     ImGui::ShowDemoWindow();
+
+    fileBrowser->Display();
 
     ImGui::Render();
 
@@ -401,6 +453,12 @@ void EditorMgr::DrawStringsWindow()
         {
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("New Strings File.."))
+                {
+                    mStringsNewModalFileName.clear();
+                    mStringsNewModal = true;
+                }
+
                 if (ImGui::MenuItem("Save"))
                 {
                     for (const auto &string : mStringCachedContents)
@@ -521,38 +579,120 @@ void EditorMgr::DrawStringsWindow()
 
 void EditorMgr::DrawTexturesWindow()
 {
-    UpdateTexturesDirCache();
-
-    if (ImGui::Begin(mTextureWindowName.c_str()))
+    if (ImGui::Begin(mTextureWindowName.c_str(), __null, ImGuiWindowFlags_MenuBar))
     {
-        if (ImGui::BeginChild("textures", {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y}))
+        if (ImGui::BeginMenuBar())
         {
-            for (const auto &textureFilePath : mTextureCachedContents)
+            if (ImGui::BeginMenu("File"))
             {
-                bool isTextureSelected = mTextureSelected == textureFilePath;
-
-                if (isTextureSelected)
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
-
-                if (!mTextures[textureFilePath.string()].get())
-                    ImGui::BeginDisabled();
-
-                if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 25}))
+                if (ImGui::MenuItem("Open"))
                 {
-                    mTextureSelected = textureFilePath;
+                    fileBrowser->SetTypeFilters({".gtx", ".dds", ".rtx"});
+                    fileBrowser->Open();
                 }
 
-                if (!mTextures[textureFilePath.string()].get())
-                    ImGui::EndDisabled();
-
-                if (isTextureSelected)
-                    ImGui::PopStyleColor(1);
+                ImGui::EndMenu();
             }
+
+            ImGui::EndMenuBar();
+        }
+
+        if (fileBrowser->HasSelected())
+        {
+            auto fileEntry = fileBrowser->GetSelected();
+
+            rio::FileDevice::LoadArg arg;
+            arg.path = fileEntry.string();
+            u8 *fileBuffer = rio::FileDeviceMgr::instance()->getNativeFileDevice()->load(arg);
+
+            if (!fileBuffer)
+            {
+                RIO_LOG("[EDITORMGR] Failed to read texture file: %s\n", fileEntry.string().c_str());
+                rio::MemUtil::free(fileBuffer);
+                return;
+            }
+
+            if (fileEntry.extension().string() == ".rtx")
+            {
+                std::unique_ptr<rio::Texture2D> texture = std::make_unique<rio::Texture2D>(fileBuffer, arg.read_size);
+
+                mTextures[fileEntry.string()] = std::move(texture);
+                mTextureCachedContents.push_back(fileEntry.string());
+
+                rio::MemUtil::free(fileBuffer);
+            }
+
+            // Thank you https://github.com/aboood40091/Miyamoto-Next
+            if (fileEntry.extension().string() == ".gtx")
+            {
+                std::unique_ptr<rio::Texture2D> texture;
+
+                Texture2DUtil::createFromGTX(fileBuffer, &texture);
+
+                mTextures[fileEntry.string()] = std::move(texture);
+                mTextureCachedContents.push_back(fileEntry.string());
+
+                rio::MemUtil::free(fileBuffer);
+            }
+
+            if (fileEntry.extension().string() == ".dds")
+            {
+                // Saving GTX Texture
+                GX2Texture texture;
+                GFDFile *gfd = new GFDFile();
+
+                GX2TextureFromDDS(&texture, fileBuffer, arg.read_size);
+
+                gfd->mTextures.push_back(texture);
+                const std::vector<u8> &gfd_data = gfd->saveGTX();
+
+                // Saving RTX Texture
+                std::unique_ptr<rio::Texture2D> rioTexture;
+                Texture2DUtil::createFromGTX(gfd_data.data(), &rioTexture);
+
+                RIO_LOG("%s\n", fileEntry.filename().c_str());
+                RIO_LOG("%s\n", fileEntry.c_str());
+                // mFileDevice->open(&fileHandle, )
+
+                rioTexture.reset();
+                rio::MemUtil::free(gfd);
+                rio::MemUtil::free(fileBuffer);
+            }
+
+            fileBrowser->ClearSelected();
+        }
+
+        if (ImGui::BeginChild("textures", ImVec2(ImGui::GetContentRegionAvail().x / 2, 0)), true)
+        {
+            if (ImGui::TreeNode("textures"))
+            {
+                for (const auto &textureFilePath : mTextureCachedContents)
+                {
+                    bool isTextureSelected = mTextureSelected == textureFilePath;
+
+                    if (isTextureSelected)
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+
+                    if (!mTextures[textureFilePath.string()].get())
+                        ImGui::BeginDisabled();
+
+                    if (ImGui::Button(textureFilePath.filename().string().c_str(), {ImGui::GetContentRegionAvail().x, 22}))
+                        mTextureSelected = textureFilePath;
+
+                    if (!mTextures[textureFilePath.string()].get())
+                        ImGui::EndDisabled();
+
+                    if (isTextureSelected)
+                        ImGui::PopStyleColor(1);
+                }
+            }
+
             ImGui::EndChild();
         }
-        ImGui::End();
 
-        if (ImGui::Begin("Texture"))
+        ImGui::SameLine();
+
+        if (ImGui::BeginChild("texture_preview", ImVec2(0, 0), true))
         {
             if (!mTextureSelected.empty())
             {
@@ -612,12 +752,247 @@ void EditorMgr::DrawTexturesWindow()
                     ImGui::EndChild();
                 }
             }
-
-            ImGui::End();
         }
     }
 
     ImGui::End();
+}
+
+void EditorMgr::DrawModelsWindow()
+{
+    UpdateModelsDirCache();
+    if (ImGui::Begin(mModelsWindowName.c_str(), NULL, ImGuiWindowFlags_MenuBar))
+    {
+        if (ImGui::BeginMenuBar())
+        {
+            ImGui::MenuItem("Material");
+            ImGui::EndMenuBar();
+        }
+
+        // Leftmost child (directory)
+        if (ImGui::BeginChild("models_dir", ImVec2(175, 0), true))
+        {
+            if (ImGui::TreeNode("models"))
+            {
+                for (const auto &model : mModelsCachedContent)
+                {
+                    if (model.second != MODEL_TYPE_OBJ)
+                        ImGui::BeginDisabled();
+
+                    if (ImGui::Selectable(model.first.c_str()))
+                    {
+                        mPreviewModel = OBJToRioModel(mModelsFolderPath + "/" + model.first, mModelsFolderPath + "/BlueEmerald.mtl");
+                    }
+
+                    if (model.second != MODEL_TYPE_OBJ)
+                        ImGui::EndDisabled();
+                }
+
+                ImGui::TreePop();
+            }
+            ImGui::EndChild();
+        }
+
+        ImGui::SameLine();
+
+        // Middle child (options)
+        if (ImGui::BeginChild("models_options", ImVec2(275, 0), true))
+        {
+            if (mPreviewModel)
+            {
+                ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+
+                ImGui::SeparatorText("Mesh Settings");
+                for (int i = 0; i < mPreviewModel->meshes.size(); i++)
+                {
+                    if (ImGui::TreeNode(std::string("Mesh (" + std::to_string(i) + ")").c_str()))
+                    {
+                        ImGui::Text("Vertex Count: %d", mPreviewModel->meshes[i].vertices.size());
+                        ImGui::Text("Index Count: %d", mPreviewModel->meshes[i].indices.size());
+
+                        ImGui::TreePop();
+                    }
+                }
+
+                ImGui::SeparatorText("Material Settings");
+                for (size_t i = 0; i < mPreviewModel->materials.size(); ++i)
+                {
+                    auto &material = mPreviewModel->materials[i];
+                    if (ImGui::TreeNode(std::string("Material (" + material.name + ")").c_str()))
+                    {
+                        ImGui::Text("Name");
+                        ImGui::InputText(("##material_name_" + std::to_string(i)).c_str(), &material.name);
+
+                        ImGui::Text("Shader Name");
+                        ImGui::InputText(("##material_shaderName_" + std::to_string(i)).c_str(), &material.shaderName);
+
+                        ImGui::Text("Is Translucent");
+                        ImGui::SameLine();
+                        ImGui::Checkbox(("##material_translucent_" + std::to_string(i)).c_str(), &material.isTranslucent);
+
+                        ImGui::Text("Is Visible");
+                        ImGui::SameLine();
+                        ImGui::Checkbox(("##material_visible_" + std::to_string(i)).c_str(), &material.isVisible);
+
+                        ImGui::Text("Alpha Test Enable");
+                        ImGui::SameLine();
+                        ImGui::Checkbox(("##material_alpTestEnable_" + std::to_string(i)).c_str(), &material.alphaTestEnable);
+
+                        for (size_t j = 0; j < material.textures.size(); ++j)
+                        {
+                            auto &texture = material.textures[j];
+
+                            ImGui::PushID(std::string("texture_header_" + std::to_string(i) + "_" + std::to_string(j)).c_str());
+                            if (ImGui::CollapsingHeader(std::string("Texture (" + std::to_string(j) + ")").c_str()))
+                            {
+                                ImGui::PopID();
+
+                                ImGui::Text("Texture Name (*.gtx/*.rtx)");
+                                ImGui::InputText(("##texture_name_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), &texture.name);
+
+                                ImGui::Text("Sampler Name");
+                                ImGui::InputText(("##texture_samplerName_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), &texture.samplerName);
+
+                                ImGui::Text("Mag Filter");
+                                if (ImGui::BeginCombo(("##texture_magFilter_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsTexXYMap[texture.magFilter].c_str()))
+                                {
+                                    for (const auto &val : mModelsTexXYMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.magFilter = val.first;
+
+                                        if (val.first == texture.magFilter)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Min Filter");
+                                if (ImGui::BeginCombo(("##texture_minFilter_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsTexXYMap[texture.minFilter].c_str()))
+                                {
+                                    for (const auto &val : mModelsTexXYMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.minFilter = val.first;
+
+                                        if (val.first == texture.minFilter)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Mip Filter");
+                                if (ImGui::BeginCombo(("##texture_mipFilter_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsMipFilterMap[texture.mipFilter].c_str()))
+                                {
+                                    for (const auto &val : mModelsMipFilterMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.mipFilter = val.first;
+
+                                        if (val.first == texture.mipFilter)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Max Aniso");
+                                if (ImGui::BeginCombo(("##texture_maxAniso_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsAnisoMap[texture.maxAniso].c_str()))
+                                {
+                                    for (const auto &val : mModelsAnisoMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.maxAniso = val.first;
+
+                                        if (val.first == texture.maxAniso)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Wrap Mode (X)");
+                                if (ImGui::BeginCombo(("##texture_wrapX_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsWrapModeMap[texture.wrapX].c_str()))
+                                {
+                                    for (const auto &val : mModelsWrapModeMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.wrapX = val.first;
+
+                                        if (val.first == texture.wrapX)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Wrap Mode (Y)");
+                                if (ImGui::BeginCombo(("##texture_wrapY_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsWrapModeMap[texture.wrapY].c_str()))
+                                {
+                                    for (const auto &val : mModelsWrapModeMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.wrapY = val.first;
+
+                                        if (val.first == texture.wrapY)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::Text("Wrap Mode (Z)");
+                                if (ImGui::BeginCombo(("##texture_wrapZ_" + std::to_string(i) + "_" + std::to_string(j)).c_str(), mModelsWrapModeMap[texture.wrapZ].c_str()))
+                                {
+                                    for (const auto &val : mModelsWrapModeMap)
+                                    {
+                                        if (ImGui::Selectable(val.second.c_str()))
+                                            texture.wrapZ = val.first;
+
+                                        if (val.first == texture.wrapZ)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+                            }
+                        }
+
+                        ImGui::TreePop();
+                    }
+                }
+
+                ImGui::PopItemWidth();
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::SameLine();
+
+        // Right side container
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, {255, 0, 0, 0});
+        if (ImGui::BeginChild("right_container", ImVec2(0, 0), false))
+        {
+            ImGui::PopStyleColor();
+            // Top child in the right section (preview)
+            if (ImGui::BeginChild("model_preview", ImVec2(0, ImGui::GetWindowHeight() * 0.5f), true))
+            {
+                ImGui::EndChild();
+            }
+
+            // New child underneath the preview
+            if (ImGui::BeginChild("model_additional", ImVec2(0, 0), true))
+            {
+                if (ImGui::Button("Export!"))
+                {
+                    SaveRioModel(*mPreviewModel.get(), false, mModelsFolderPath + "/test");
+                }
+                ImGui::EndChild();
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+    }
 }
 
 void EditorMgr::CreateNodePropertiesMenu()

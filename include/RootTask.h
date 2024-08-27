@@ -1,12 +1,5 @@
-#include <gfx/rio_Camera.h>
-#include <controller/rio_Controller.h>
-#include <task/rio_Task.h>
-#include <nn/ffl/FFLMiddleDB.h>
-#include <nn/ffl/FFLMiddleDBType.h>
 #include <imgui.h>
-#include <filedevice/rio_FileDeviceMgr.h>
-
-class Model;
+#include <rio.h>
 
 class RootTask : public rio::ITask
 {
@@ -18,9 +11,7 @@ private:
     void calc_() override;
     void exit_() override;
 
-    void createModel_(u16 index);
     void initImgui();
-    void Render();
 
 #if RIO_IS_DESKTOP
     void resize_(s32 width, s32 height);

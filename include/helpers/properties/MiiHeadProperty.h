@@ -2,10 +2,11 @@
 #define MIIHEADPROPERTYHELPER_H
 
 #include <nn/ffl.h>
-#include <helpers/properties/Property.h>
 #include <Shader.h>
-#include <helpers/properties/map/CameraProperty.h>
 #include <math/rio_MathTypes.h>
+
+#include <helpers/properties/Property.h>
+#include <helpers/properties/map/CameraProperty.h>
 #include <helpers/editor/EditorTypes.h>
 
 class Shader;

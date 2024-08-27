@@ -3,8 +3,6 @@
 #include <gfx/rio_Color.h>
 
 #include <helpers/common/NodeMgr.h>
-#include <helpers/model/LightNode.h>
-#include <helpers/model/ModelNode.h>
 #include <helpers/common/Node.h>
 #include <helpers/properties/Property.h>
 
@@ -17,8 +15,6 @@
 #include <filedevice/rio_FileDevice.h>
 #include <filedevice/rio_FileDeviceMgr.h>
 #include <yaml-cpp/yaml.h>
-
-#include <helpers/editor/EditorMgr.h>
 
 NodeMgr *NodeMgr::mInstance = nullptr;
 
@@ -109,8 +105,8 @@ bool NodeMgr::LoadFromFile(std::string fileName)
 
             RIO_LOG("[NODEMGR] Loading Property: %s..\n", propertyName.c_str());
 
-            auto fp = mPropertyFactory.find(propertyName);
-            if (fp != mPropertyFactory.end())
+            auto fp = mPropertyMap.find(propertyName);
+            if (fp != mPropertyMap.end())
             {
                 auto property = fp->second(addedNode);
                 property->Load(propertyNode);

@@ -1,0 +1,52 @@
+# Blender 3.4.1 MTL File: 'None'
+# www.blender.org
+
+newmtl ADV_MR00_material_114
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/chayton/Downloads/GameCube - Sonic Adventure DX Directors Cut - Mystic Ruins Train Station Area/mra_256_water.png
+
+newmtl ADV_MR00_material_126
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/chayton/Downloads/GameCube - Sonic Adventure DX Directors Cut - Mystic Ruins Train Station Area/m64_fall3.png
+
+newmtl ADV_MR00_material_19
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/chayton/Downloads/GameCube - Sonic Adventure DX Directors Cut - Mystic Ruins Train Station Area/m64_fall1.png
+
+newmtl ADV_MR00_material_20
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/chayton/Downloads/GameCube - Sonic Adventure DX Directors Cut - Mystic Ruins Train Station Area/m64_fall2.png
+
+newmtl ADV_MR00_material_21
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/chayton/Downloads/GameCube - Sonic Adventure DX Directors Cut - Mystic Ruins Train Station Area/mr64_takihamon.png

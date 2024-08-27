@@ -3,13 +3,17 @@
 
 #include <helpers/properties/Property.h>
 #include <helpers/properties/map/CameraProperty.h>
+#include <helpers/common/NodeMgr.h>
+
 #include <gfx/mdl/rio_Material.h>
 #include <gfx/mdl/rio_Mesh.h>
 #include <gfx/mdl/res/rio_ModelCacher.h>
 #include <gfx/mdl/res/rio_ModelData.h>
 #include <gfx/mdl/rio_Model.h>
+
 #include <gpu/rio_Drawer.h>
 #include <misc/rio_MemUtil.h>
+
 #include <vector>
 
 class MeshProperty : public Property

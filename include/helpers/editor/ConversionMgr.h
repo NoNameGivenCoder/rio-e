@@ -15,6 +15,7 @@
 #include <tuple>
 #include <algorithm>
 #include <endian.h>
+#include <memory>
 
 struct Mesh
 {
@@ -37,7 +38,7 @@ struct OBJReturnResult
 struct Texture
 {
     std::string name = "";
-    std::string samplerName = "";
+    std::string samplerName = "texture1";
 
     rio::TexXYFilterMode magFilter = rio::TEX_XY_FILTER_MODE_LINEAR;
     rio::TexXYFilterMode minFilter = rio::TEX_XY_FILTER_MODE_LINEAR;
@@ -95,7 +96,7 @@ struct Material
     bool stencilTestEnable = false;
     rio::Graphics::CompareFunc stencilTestFunc = rio::Graphics::CompareFunc::COMPARE_FUNC_NEVER;
     int stencilTestRef = 0;
-    u8 stencilTestMask = 0xFFFFFFFF;
+    u32 stencilTestMask = 0xFFFFFFFF;
     rio::Graphics::StencilOp stencilOpFail = rio::Graphics::StencilOp::STENCIL_KEEP;
     rio::Graphics::StencilOp stencilOpZFail = rio::Graphics::StencilOp::STENCIL_KEEP;
     rio::Graphics::StencilOp stencilOpZPass = rio::Graphics::StencilOp::STENCIL_KEEP;
@@ -112,7 +113,9 @@ struct Model
 };
 
 OBJReturnResult ReadOBJ(std::string fileName);
-void OBJToRioModel(std::string fileName);
+std::vector<Material> ReadMTL(std::string fileName);
+std::unique_ptr<Model> OBJToRioModel(std::string objFileName, std::string mtlFileName);
+void SaveRioModel(const Model &model, bool endian, std::string fileName);
 bool areVerticesEqual(const rio::mdl::res::Vertex &v1, const rio::mdl::res::Vertex &v2);
 
 u32 align(u32 x, u32 y);

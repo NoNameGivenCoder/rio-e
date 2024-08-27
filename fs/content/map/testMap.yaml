@@ -1,101 +1,101 @@
 nodes:
-  5:
-    name: obj_emerald
-    transform:
-      position:
-        x: 1.88
-        y: -1.96000004
-        z: -1.00999999
-      rotation:
-        x: -0.100000001
-        y: 1.46000004
-        z: 0
-      scale:
-        x: 1
-        y: 1
-        z: 1
-    properties:
-      Mesh:
-        meshFileName: Cylinder
-        meshKey: emerald
-  4:
-    name: obj_skybox_vr
-    transform:
-      position:
-        x: -1.36000001
-        y: -2.5
-        z: 0
-      rotation:
-        x: 0
-        y: 0
-        z: 0
-      scale:
-        x: -3
-        y: 3
-        z: 3
-    properties:
-      Mesh:
-        meshFileName: skybox
-        meshKey: skybox
-  3:
-    name: obj_test_mii_head
-    transform:
-      position:
-        x: -0.289999992
-        y: -0.469999999
-        z: -0.680000007
-      rotation:
-        x: 0
-        y: -6.69000006
-        z: 0
-      scale:
-        x: 1
-        y: 1
-        z: 1
-    properties:
-      MiiHead:
-        miiDataFile: Jasmine.ffsd
-        propertyId: 0
-  2:
-    name: obj_mus_mystic_ruins
-    transform:
-      position:
-        x: 0.730000019
-        y: 0
-        z: 0
-      rotation:
-        x: -0.300000012
-        y: 124
-        z: 12
-      scale:
-        x: 1
-        y: 1
-        z: 1
-    properties:
-      Audio:
-        audioFile: MYSTIC_RUIN.mp3
-        audioKey: MainThemeBgm
-        audioType: 0
-        loop: 0
-        volume: 0.899999976
-        propertyId: 0
-  1:
-    name: mapCamera
-    transform:
-      position:
-        x: 0.149000004
-        y: 0.907000005
-        z: 2.84868002
-      rotation:
-        x: 0
-        y: 0
-        z: 0
-      scale:
-        x: 1
-        y: 1
-        z: 1
-    properties:
-      Camera:
-        cameraType: 1
-        cameraFOV: 90
-        propertyId: 0
+    5:
+        name: obj_emerald
+        transform:
+            position:
+                x: 0.25999999
+                y: -0.810000002
+                z: -1.00999999
+            rotation:
+                x: -0.100000001
+                y: 1.46000004
+                z: 0
+            scale:
+                x: 3.69000006
+                y: -2.75
+                z: 3.76999998
+        properties:
+            Mesh:
+                meshFileName: test
+                meshKey: emerald
+    4:
+        name: obj_skybox_vr
+        transform:
+            position:
+                x: -1.36000001
+                y: -2.5
+                z: 0
+            rotation:
+                x: 0
+                y: 0
+                z: 0
+            scale:
+                x: -3
+                y: 3
+                z: 3
+        properties:
+            Mesh:
+                meshFileName: skybox
+                meshKey: skybox
+    3:
+        name: obj_test_mii_head
+        transform:
+            position:
+                x: -0.289999992
+                y: -0.469999999
+                z: -0.680000007
+            rotation:
+                x: 0
+                y: -6.69000006
+                z: 0
+            scale:
+                x: 1
+                y: 1
+                z: 1
+        properties:
+            MiiHead:
+                miiDataFile: Jasmine.ffsd
+                propertyId: 0
+    2:
+        name: obj_mus_mystic_ruins
+        transform:
+            position:
+                x: 0.730000019
+                y: 0
+                z: 0
+            rotation:
+                x: -0.300000012
+                y: 124
+                z: 12
+            scale:
+                x: 1
+                y: 1
+                z: 1
+        properties:
+            Audio:
+                audioFile: MYSTIC_RUIN.mp3
+                audioKey: MainThemeBgm
+                audioType: 0
+                loop: 0
+                volume: 0.899999976
+                propertyId: 0
+    1:
+        name: obj_map_camera
+        transform:
+            position:
+                x: -0.0410000011
+                y: 0.907000005
+                z: 2.84868002
+            rotation:
+                x: 0
+                y: 0
+                z: 0
+            scale:
+                x: 1
+                y: 1
+                z: 1
+        properties:
+            Camera:
+                cameraType: 1
+                cameraFOV: 90
+                propertyId: 0

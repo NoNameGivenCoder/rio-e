@@ -107,10 +107,13 @@ Texture2DUtil::GTXError Texture2DUtil::createFromGTX(const u8 *file_data, std::u
     native_texture.surface.image = linear_surface.imagePtr;
     native_texture.surface.mipmapSize = linear_surface.mipSize;
     native_texture.surface.mipmaps = linear_surface.mipPtr;
+    native_texture.compMap = gx2Texture.compSel;
 
     rio::MemUtil::copy(native_texture.surface.mipLevelOffset, linear_surface.mipOffset, 13 * sizeof(u32));
     native_texture.surface.mipLevelOffset[0] = 0;
 #endif
+
+    RIO_LOG("Finished!\n");
 
     p_texture = std::make_unique<rio::Texture2D>(native_texture);
     return GTX_ERROR_OK;
