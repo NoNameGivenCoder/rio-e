@@ -1,9 +1,28 @@
 ﻿#include <cstdio>
-#include <stdlib.h>
 #include <iostream>
+
+#include "rio.h"
+#include "EditorTask.h"
+
+static const rio::InitializeArg cInitializeArg = {
+    .window = {
+#if RIO_IS_WIN
+        .resizable = true,
+        .gl_major = 4,
+        .gl_minor = 3,
+#endif // RIO_IS_WIN
+    } };
 
 int main()
 {
-	std::cout << "Hello world! Testing Git changes?" << std::endl;
+	RIO_LOG("[RIO(E)] Starting..\n");
+
+    if (!rio::Initialize<EditorTask>(cInitializeArg))
+        return -1;
+
+    rio::EnterMainLoop();
+
+    rio::Exit();
+
 	return 0;
 }
