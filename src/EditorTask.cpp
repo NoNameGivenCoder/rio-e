@@ -8,6 +8,12 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
 
+#include "filedevice/rio_FileDeviceMgr.h"
+
+#include "yaml-cpp/yaml.h"
+
+#include <filesystem>
+
 EditorTask::EditorTask() : ITask("RIO(e)")
 {
 }
@@ -17,6 +23,34 @@ void EditorTask::prepare_()
 	RIO_LOG("[RIO(e)] EditorTask preparing..\n");
 
 	InitializeImGui();
+
+	std::string persistentDataPath = std::filesystem::current_path().string() + "/persistentData";
+
+	// If there is no persistentData folder, we'll need to create it to store all data like a list of
+	// projects, and different developer preferences.
+	if (!std::filesystem::exists(persistentDataPath))
+	{
+		std::filesystem::create_directory(persistentDataPath);
+		RIO_LOG("[RIO(e)] Created persistentData.\n");
+
+		char* projectsYAMLTemplate = (char*)"projects:";
+		char* preferencesYAMLTemplate = (char*)"preferences:";
+
+		rio::FileHandle fileHandle;
+		rio::FileDeviceMgr::instance()->getNativeFileDevice()->open(&fileHandle, persistentDataPath + "/projectsList.yaml", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
+
+		fileHandle.write(reinterpret_cast<u8*>(projectsYAMLTemplate), strlen(projectsYAMLTemplate));
+		fileHandle.close();
+
+		rio::FileDeviceMgr::instance()->getNativeFileDevice()->open(&fileHandle, persistentDataPath + "/preferences.yaml", rio::FileDevice::FILE_OPEN_FLAG_WRITE);
+
+		fileHandle.write(reinterpret_cast<u8*>(preferencesYAMLTemplate), strlen(preferencesYAMLTemplate));
+		fileHandle.close();
+	}
+
+	YAML::Node projectsYAMLNode = YAML::LoadFile(persistentDataPath + "/projectsList.yaml");
+	for (const auto& projectName : projectsYAMLNode["projects"])
+		mProjectFolders.emplace(projectName.first.as<std::string>(), projectName.second.as<std::string>());
 }
 
 void EditorTask::calc_()
@@ -29,7 +63,7 @@ void EditorTask::calc_()
 	ImGui::DockSpaceOverViewport();
 
 	EditorUI::CreateRIOeInfo();
-	EditorUI::CreateProjectsList();
+	EditorUI::CreateProjectsList(mProjectFolders);
 
 	ImGui::Render();
 
@@ -48,6 +82,8 @@ void EditorTask::exit_()
 
 void EditorTask::InitializeImGui()
 {
+	RIO_LOG("[RIO(e)] ImGui initializing..\n");
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	globalIO = &ImGui::GetIO();
@@ -63,6 +99,8 @@ void EditorTask::InitializeImGui()
 	ImGui_ImplOpenGL3_Init("#version 130");
 
 	rio::Window::instance()->setOnResizeCallback(&EditorTask::onResizeCallback_);
+
+	RIO_LOG("[RIO(e)] ImGui initialized!\n");
 }
 
 void EditorTask::resize_(s32 width, s32 height)

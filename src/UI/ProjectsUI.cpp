@@ -1,10 +1,44 @@
 #include <string>
+#include <unordered_map>
 
 #include "imgui.h"
 
 #include "rio.h"
+#include "gfx/rio_Window.h"
+
+#include "windows.h"
+#include "ShlObj.h"
+
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 namespace EditorUI {
+	std::string CreateFolderDialog()
+	{
+		BROWSEINFOA bi = { 0 };
+		CHAR folDir[MAX_PATH] = { 0 };
+		bi.hwndOwner = glfwGetWin32Window(rio::Window::instance()->getNativeWindow().getGLFWwindow());
+		bi.pszDisplayName = folDir;
+		bi.lpszTitle = "Select a folder";
+		bi.ulFlags = BIF_NEWDIALOGSTYLE | BIF_RETURNONLYFSDIRS;
+
+		LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+
+		if (pidl != nullptr)
+		{
+			// Get the selected folder path
+			if (SHGetPathFromIDListA(pidl, folDir))
+			{
+				std::string folderPath = folDir;
+				CoTaskMemFree(pidl);
+				return folderPath;
+			}
+			CoTaskMemFree(pidl);
+		}
+
+		return "";
+	}
 	void CreateRIOeInfo() {
 		if (ImGui::Begin("RIO(e) Info"))
 		{
@@ -22,7 +56,7 @@ namespace EditorUI {
 			ImGui::End();
 		}
 	}
-	void CreateProjectsList()
+	void CreateProjectsList(std::unordered_map<std::string, std::string>& projectsList)
 	{
 		if (ImGui::Begin("Projects", nullptr, ImGuiWindowFlags_MenuBar))
 		{
@@ -39,6 +73,11 @@ namespace EditorUI {
 					if (ImGui::MenuItem("Open"))
 					{
 						RIO_LOG("[Projects] Opening new project folder..\n");
+						std::string result = CreateFolderDialog();
+
+						projectsList.emplace(result, result);
+
+						RIO_LOG("%s\n", result.c_str());
 					}
 
 					ImGui::EndMenu();
@@ -49,9 +88,12 @@ namespace EditorUI {
 
 			if (ImGui::BeginChild("projects_list", ImVec2(0, 0), true))
 			{
-				for (int i = 0; i < 100; i++)
+				int index = 0;
+				for (const auto& project : projectsList)
 				{
-					ImGui::Selectable("Project Name");
+					std::string uniqueID = project.first + "##" + std::to_string(index++);
+
+					ImGui::Selectable(uniqueID.c_str());
 				}
 
 				ImGui::EndChild();

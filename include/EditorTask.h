@@ -2,6 +2,9 @@
 
 #include "imgui.h"
 
+#include <unordered_map>
+#include <string>
+
 class EditorTask : public rio::ITask
 {
 public:
@@ -22,4 +25,6 @@ private:
 private:
 	bool mInitialized = false;
 	ImGuiIO *globalIO;
+
+	std::unordered_map<std::string, std::string> mProjectFolders;
 };
