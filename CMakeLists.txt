@@ -12,21 +12,27 @@ set(GLFW_LIB_DIR "../glfw/lib-vc2022")
 include_directories(${GLEW_INCLUDE_DIR})
 include_directories(${GLFW_INCLUDE_DIR})
 
+include_directories(include/)
+
+include_directories(lib/rio/include)
+
+include_directories(lib/imgui)
+include_directories(lib/imgui/backends)
+
 # Link directories
 link_directories(${GLEW_LIB_DIR})
 link_directories(${GLFW_LIB_DIR})
 
 # Collect source files
-file(GLOB_RECURSE SOURCES src/main.cpp src/*.cpp include/*.h)
+file(GLOB_RECURSE SOURCES src/main.cpp src/*.cpp src/UI/*.cpp include/*.h)
 file(GLOB_RECURSE RIO_SOURCES lib/rio/src/*.cpp lib/rio/include/*.h)
-
-include_directories(include/ lib/rio/include)
+file(GLOB_RECURSE IMGUI_SOURCES lib/imgui/imgui.cpp lib/imgui/imgui_demo.cpp lib/imgui/imgui_draw.cpp lib/imgui/imgui_tables.cpp lib/imgui/imgui_widgets.cpp lib/imgui/backends/imgui_impl_opengl3.cpp lib/imgui/backends/imgui_impl_glfw.cpp lib/imgui/*.h)
 
 # Define compiler options
 add_definitions(-DRIO_DEBUG)
 
 # Add executable
-add_executable(CMakeTarget ${SOURCES} ${RIO_SOURCES})
+add_executable(CMakeTarget ${SOURCES} ${RIO_SOURCES} ${IMGUI_SOURCES})
 
 # Link libraries
 target_link_libraries(CMakeTarget

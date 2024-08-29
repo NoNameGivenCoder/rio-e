@@ -15,7 +15,7 @@ static const rio::InitializeArg cInitializeArg = {
 
 int main()
 {
-	RIO_LOG("[RIO(E)] Starting..\n");
+	RIO_LOG("[RIO(e)] Starting..\n");
 
     if (!rio::Initialize<EditorTask>(cInitializeArg))
         return -1;

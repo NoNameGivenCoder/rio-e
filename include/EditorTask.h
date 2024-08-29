@@ -1,5 +1,7 @@
 #include "rio.h"
 
+#include "imgui.h"
+
 class EditorTask : public rio::ITask
 {
 public:
@@ -10,6 +12,8 @@ private:
 	void calc_() override;
 	void exit_() override;
 
+	void InitializeImGui();
+
 #if RIO_IS_WIN
 	void resize_(s32 width, s32 height);
 	static void onResizeCallback_(s32 width, s32 height);
@@ -17,4 +21,5 @@ private:
 
 private:
 	bool mInitialized = false;
+	ImGuiIO *globalIO;
 };
