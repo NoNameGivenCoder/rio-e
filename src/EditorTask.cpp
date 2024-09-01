@@ -1,5 +1,6 @@
 #include "EditorTask.h"
 #include "UI/ProjectsUI.h"
+#include "rio-e/EditorMgr.h"
 
 #include "gfx/rio_Window.h"
 #include "gfx/rio_Graphics.h"
@@ -49,8 +50,11 @@ void EditorTask::prepare_()
 	}
 
 	YAML::Node projectsYAMLNode = YAML::LoadFile(persistentDataPath + "/projectsList.yaml");
-	for (const auto& projectName : projectsYAMLNode["projects"])
-		mProjectFolders.emplace(projectName.first.as<std::string>(), projectName.second.as<std::string>());
+	for (const auto& YAMLproject : projectsYAMLNode["projects"])
+	{
+		rioe::EditorTypes::Project project = rioe::EditorTypes::GetProjectData(YAMLproject.second.as<std::string>());
+		rioe::EditorMgr::instance()->mAllProjects.push_back(project);
+	}
 }
 
 void EditorTask::calc_()
@@ -62,8 +66,8 @@ void EditorTask::calc_()
 
 	ImGui::DockSpaceOverViewport();
 
-	EditorUI::CreateRIOeInfo();
-	EditorUI::CreateProjectsList(mProjectFolders);
+	rioe::ProjectsUI::CreateRIOeInfo();
+	rioe::ProjectsUI::CreateProjectsList();
 
 	ImGui::Render();
 

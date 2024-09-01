@@ -2,9 +2,14 @@
 #include <unordered_map>
 
 #include "imgui.h"
+#include "rio-e/EditorTypes.h"
 
-namespace EditorUI {
-	std::string CreateFolderDialog();
-	void CreateRIOeInfo();
-	void CreateProjectsList(std::unordered_map<std::string, std::string>& projectsList);
+namespace rioe {
+	namespace ProjectsUI {
+		void CreateNewProject(std::filesystem::path path);
+		bool WriteFile(char* inp, std::string path);
+		std::string CreateFolderDialog(const char* promptTitle);
+		void CreateRIOeInfo();
+		void CreateProjectsList();
+	}
 }

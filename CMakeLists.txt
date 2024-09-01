@@ -1,6 +1,10 @@
 ﻿cmake_minimum_required(VERSION 3.10)
 project(RIOe)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+
 # Define directories
 set(GLEW_INCLUDE_DIR "../glew/include")
 set(GLEW_LIB_DIR "../glew/lib/Release/x64")
@@ -28,7 +32,7 @@ link_directories(${GLEW_LIB_DIR})
 link_directories(${GLFW_LIB_DIR})
 
 # Collect source files
-file(GLOB_RECURSE SOURCES src/main.cpp src/*.cpp src/UI/*.cpp include/*.h)
+file(GLOB_RECURSE SOURCES src/main.cpp src/*.cpp src/UI/*.cpp include/*.h src/rio-e/*.cpp)
 file(GLOB_RECURSE RIO_SOURCES lib/rio/src/*.cpp lib/rio/include/*.h)
 file(GLOB_RECURSE YAML_SOURCES lib/yaml-cpp/src/*.cpp lib/yaml-cpp/include/*.h)
 file(GLOB_RECURSE IMGUI_SOURCES lib/imgui/imgui.cpp lib/imgui/imgui_demo.cpp lib/imgui/imgui_draw.cpp lib/imgui/imgui_tables.cpp lib/imgui/imgui_widgets.cpp lib/imgui/backends/imgui_impl_opengl3.cpp lib/imgui/backends/imgui_impl_glfw.cpp lib/imgui/*.h)
