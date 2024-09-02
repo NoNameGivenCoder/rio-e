@@ -19,6 +19,7 @@ namespace rioe {
 			project.projectName = node["project"]["projectName"].as<std::string>();
 			project.editorVersion = node["project"]["editorVersion"].as<std::string>();
 			project.defaultScene = node["project"]["defaultScene"].as<std::string>();
+			project.filePath = projectPath;
 
 			return project;
 		}

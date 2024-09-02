@@ -28,15 +28,7 @@ public:
 	std::vector<rioe::EditorTypes::Project> mProjects;
 	rioe::EditorTypes::Project* mSelectedProject;
 
-	enum UIState
-	{
-		UI_STATE_PROJECTS,
-		UI_STATE_INITIALIZING_EDITOR,
-		UI_STATE_EDITOR
-	};
-
 private:
 	bool mInitialized = false;
 	ImGuiIO *globalIO;
-	UIState mUIState = UI_STATE_PROJECTS;
 };

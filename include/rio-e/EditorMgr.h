@@ -7,6 +7,13 @@ namespace rioe
 	class EditorMgr
 	{
 	public:
+		enum UIState
+		{
+			UI_STATE_PROJECTS,
+			UI_STATE_INITIALIZING_EDITOR,
+			UI_STATE_EDITOR
+		};
+	public:
 		static bool createSingleton();
 		static bool destorySingleton();
 
@@ -17,6 +24,10 @@ namespace rioe
 		std::vector<EditorTypes::Project> mAllProjects;
 
 		void InitializeProject(EditorTypes::Project project);
+
+		
+
+		UIState uiState = UI_STATE_PROJECTS;
 
 	private:
 		static EditorMgr* mInstance;

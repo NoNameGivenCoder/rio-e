@@ -95,7 +95,7 @@ void EditorTask::InitializeImGui()
 	globalIO->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	globalIO->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-	globalIO->Fonts->AddFontFromFileTTF("./fs/content/font/editor_main.ttf", 18);
+	globalIO->Fonts->AddFontFromFileTTF("persistentData/DefaultEditorFont.ttf", 18);
 
 	ImGui::StyleColorsDark();
 

@@ -61,7 +61,7 @@ namespace rioe {
 			projectConfig << YAML::BeginMap << YAML::Key << "project" << YAML::BeginMap;
 			projectConfig << YAML::Key << "projectName" << YAML::Value << path.filename().string();
 			projectConfig << YAML::Key << "editorVersion" << YAML::Value << "1.0.0";
-			projectConfig << YAML::Key << "defaultScene" << YAML::Value << "HelloWorld.yaml";
+			projectConfig << YAML::Key << "defaultScene" << YAML::Value << "Scene01.yaml";
 
 			projectConfig << YAML::EndMap;
 
@@ -69,7 +69,8 @@ namespace rioe {
 
 			YAML::Emitter helloWorldScene;
 
-			helloWorldScene << YAML::BeginMap << YAML::Key << "0" << YAML::BeginMap;
+			helloWorldScene << YAML::BeginMap << YAML::Key << "nodes" << YAML::BeginMap;
+			helloWorldScene << YAML::Key << "0" << YAML::BeginMap;
 			helloWorldScene << YAML::Key << "name" << YAML::Value << "Camera";
 
 			helloWorldScene << YAML::Key << "transform" << YAML::BeginMap;
@@ -99,7 +100,7 @@ namespace rioe {
 
 			helloWorldScene << YAML::Key << cameraProperty.begin()->first << YAML::Value << cameraProperty.begin()->second;
 
-			WriteFile((char*)(helloWorldScene.c_str()), path.string() + "/build/fs/content/map/HelloWorld.yaml");
+			WriteFile((char*)(helloWorldScene.c_str()), path.string() + "/build/fs/content/map/Scene01.yaml");
 
 			return rioe::EditorTypes::GetProjectData(path);
 		}
