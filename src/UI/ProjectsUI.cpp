@@ -141,6 +141,8 @@ namespace rioe {
 					ImGui::BulletText("Placeholder bullet point.");
 					ImGui::BulletText("Miiverse.");
 					ImGui::BulletText("Juxt.");
+
+					ImGui::CollapsingHeader("Test!");
 					ImGui::EndChild();
 				}
 			}

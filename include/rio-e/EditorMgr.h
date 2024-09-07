@@ -25,8 +25,6 @@ namespace rioe
 
 		void InitializeProject(EditorTypes::Project project);
 
-		
-
 		UIState uiState = UI_STATE_PROJECTS;
 
 	private:
